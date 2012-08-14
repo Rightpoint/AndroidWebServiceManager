@@ -1,0 +1,3 @@
+[submodule "BaseUtils"]
+	path = BaseUtils
+	url = git@github.com:Raizlabs/RZAndroidBaseUtils.git
