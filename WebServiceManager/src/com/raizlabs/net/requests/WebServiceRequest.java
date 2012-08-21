@@ -4,6 +4,7 @@ import java.net.HttpURLConnection;
 
 import org.apache.http.HttpResponse;
 
+import com.raizlabs.events.ProgressListener;
 import com.raizlabs.events.SimpleEventListener;
 import com.raizlabs.net.HttpMethod;
 
@@ -74,6 +75,22 @@ public interface WebServiceRequest<ResultType> extends HttpUriRequestable, UrlCo
 	 * Removes the given {@link SimpleEventListener} from being notified of
 	 * cancellations.
 	 * @param listener The {@link SimpleEventListener} to remove.
+	 * @return True if the listener was removed, false if it was not found.
 	 */
-	void removeOnCancelListener(SimpleEventListener listener);
+	boolean removeOnCancelListener(SimpleEventListener listener);
+	
+	/**
+	 * Adds a listener which will be called when the progress is updated.
+	 * <br>NOTE: Some requests may not publish progress.
+	 * @param listener The {@link ProgressListener} which will be called
+	 * on progress updates.
+	 */
+	void addProgressListener(ProgressListener listener);
+	/**
+	 * Removes the given {@link ProgressListener} from being notified
+	 * of progress updates.
+	 * @param listener The {@link ProgressListener} to remove.
+	 * @return True if the listener was removed, false if it was not found.
+	 */
+	boolean removeProgressListener(ProgressListener listener);
 }

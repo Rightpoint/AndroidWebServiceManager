@@ -6,6 +6,7 @@ import java.util.HashSet;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
+import com.raizlabs.events.ProgressListener;
 import com.raizlabs.events.SimpleEventListener;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.responses.HttpClientResponse;
@@ -82,12 +83,43 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	}
 	
 	@Override
-	public void removeOnCancelListener(SimpleEventListener listener) {
+	public boolean removeOnCancelListener(SimpleEventListener listener) {
 		synchronized(this) {
-			cancelListeners.remove(listener);
+			return cancelListeners.remove(listener);
 		}
 	}
 	
+	/**
+	 * Set of {@link ProgressListener}s that are subscribed to progress updates.
+	 */
+	private HashSet<ProgressListener> progressListeners = new HashSet<ProgressListener>();
+	
+	@Override
+	public void addProgressListener(ProgressListener listener) {
+		synchronized (progressListeners) {
+			progressListeners.add(listener);
+		}
+	}
+	
+	@Override
+	public boolean removeProgressListener(ProgressListener listener) {
+		synchronized (progressListeners) {
+			return progressListeners.remove(listener);
+		}
+	}
+	
+	/**
+	 * Notifies all listeners of the given progress
+	 * @param currentProgress The current progress, or -1 if unknown.
+	 * @param maxProgress The maximum progress, or -1 if unknown.
+	 */
+	protected void publishProgress(long currentProgress, long maxProgress) {
+		synchronized(progressListeners) {
+			for (ProgressListener listener : progressListeners) {
+				listener.onProgressUpdate(currentProgress, maxProgress);
+			}
+		}
+	}
 	
 	@Override
 	public HttpURLConnection getUrlConnection() {

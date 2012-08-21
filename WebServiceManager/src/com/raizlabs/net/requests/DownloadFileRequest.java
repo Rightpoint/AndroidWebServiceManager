@@ -85,7 +85,18 @@ public class DownloadFileRequest extends BaseWebServiceRequest<Boolean> {
 
 	@Override
 	protected Boolean translate(Response response) {
-		return response.readContentToFile(localFile, progressListener);
+		// "Middle man" listener which will publish progress and call any external
+		// progress listener
+		ProgressListener listener = new ProgressListener() {
+			@Override
+			public void onProgressUpdate(long currentProgress, long maxProgress) {
+				publishProgress(currentProgress, maxProgress);
+				if (progressListener != null) {
+					progressListener.onProgressUpdate(currentProgress, maxProgress);
+				}
+			}
+		};
+		return response.readContentToFile(localFile, listener);
 	}
 
 }

@@ -26,6 +26,13 @@ public class ResultInfo<ResultType> {
 	String ResponseMessage;
 	public String getResponseMessage() { return ResponseMessage; }
 	
+	boolean cancelled;
+	/**
+	 * @return True if the request was cancelled.
+	 */
+	public boolean wasCancelled() { return cancelled; }
+	void setCancelled(boolean cancelled) { this.cancelled = cancelled; }
+	
 	/**
 	 * Creates a {@link ResultInfo} by wrapping the given result and
 	 * {@link HttpURLConnection}.
@@ -54,6 +61,7 @@ public class ResultInfo<ResultType> {
 	private ResultInfo(ResultType result, Date requestDate) {
 		this.Result = result;
 		this.RequestDate = requestDate;
+		this.cancelled = false;
 	}
 	
 	

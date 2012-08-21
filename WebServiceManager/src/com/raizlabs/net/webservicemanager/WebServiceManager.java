@@ -139,7 +139,22 @@ public class WebServiceManager {
 	 * @return The result of the request.
 	 */
 	public <ResultType> ResultInfo<ResultType> doRequest(WebServiceRequest<ResultType> request) {
-		switch(defaultRequestMode) {
+		return doRequest(request, null);
+	}
+
+	/**
+	 * Performs the given {@link WebServiceRequest} using the given {@link RequestMode}
+	 * and returns the result.
+	 * @param request The {@link WebServiceRequest} to execute.
+	 * @param mode The {@link RequestMode} to use, or null to use the default.
+	 * @return The result of the request.
+	 */
+	public <ResultType> ResultInfo<ResultType> doRequest(WebServiceRequest<ResultType> request, RequestMode mode) {
+		if (mode == null) {
+			mode = defaultRequestMode;
+		}
+		
+		switch(mode) {
 		case HttpClient:
 			return doRequestViaClient(request);
 		case HttpURLConnection:
@@ -148,7 +163,7 @@ public class WebServiceManager {
 			return null;
 		}
 	}
-
+	
 	/**
 	 * Performs the given {@link WebServiceRequest} using {@link RequestMode#HttpClient}
 	 * and the {@link RequestExecutionPool} and returns the result.
@@ -183,8 +198,13 @@ public class WebServiceManager {
 		
 		// Translate the response, or null if we didn't get one
 		ResultType result = request.translateHTTPResponse(response, HttpMethod.fromName(httpRequest.getMethod()));
-		// Return the result
-		return new ResultInfo<ResultType>(result, new Date(), response);
+		ResultInfo<ResultType> resultInfo = new ResultInfo<ResultType>(result, new Date(), response);
+		// If the request was cancelled, indicate it in the result info
+		if (request.isCancelled()) {
+			resultInfo.setCancelled(true);
+		}
+		// Return the result info
+		return resultInfo;
 	}
 
 	/**
@@ -195,6 +215,7 @@ public class WebServiceManager {
 	 */
 	public <ResultType> ResultInfo<ResultType> doRequestViaURLConnection(WebServiceRequest<ResultType> request) {
 		HttpURLConnection outerConnection = null;
+		ResultInfo<ResultType> resultInfo = null;
 		try {
 			// If the request hasn't been cancelled yet, start the connection
 			if (!request.isCancelled()) {
@@ -229,8 +250,7 @@ public class WebServiceManager {
 						// We may hit errors if the connection is closed etc.
 					}
 					
-					// Return what we could retrieve
-					return new ResultInfo<ResultType>(result, new Date(), connection);
+					resultInfo = new ResultInfo<ResultType>(result, new Date(), connection);
 				}
 			}
 		} catch (IOException e) {
@@ -245,7 +265,16 @@ public class WebServiceManager {
 			endConnection();
 		}
 
-		// Return nulled result
-		return new ResultInfo<ResultType>(null, new Date(), (HttpURLConnection)null);
+		// If we never created a result, create a nulled on
+		if (resultInfo == null) {
+			resultInfo = new ResultInfo<ResultType>(null, new Date(), (HttpURLConnection)null);
+		}
+		
+		// If the request was cancelled, indicate it in the result info
+		if (request.isCancelled()) {
+			resultInfo.setCancelled(true);
+		}
+		
+		return resultInfo;
 	}
 }

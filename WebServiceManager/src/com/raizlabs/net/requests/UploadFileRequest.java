@@ -60,8 +60,19 @@ public class UploadFileRequest extends BaseWebServiceRequest<Boolean>{
 	 * @param listener The {@link ProgressListener} which will be called during the upload.
 	 * (May be null).
 	 */
-	public UploadFileRequest(HttpMethod method, String url, File localFile, ProgressListener listener) {
-		this.builder = new RequestBuilder(method, url).setFileInput(localFile, listener);
+	public UploadFileRequest(HttpMethod method, String url, File localFile, final ProgressListener listener) {
+		// "Middle man" listener which will publish progress and call any external
+		// progress listener
+		ProgressListener mListener = new ProgressListener() {
+			@Override
+			public void onProgressUpdate(long currentProgress, long maxProgress) {
+				publishProgress(currentProgress, maxProgress);
+				if (listener != null) {
+					listener.onProgressUpdate(currentProgress, maxProgress);
+				}
+			}
+		};
+		this.builder = new RequestBuilder(method, url).setFileInput(localFile, mListener);
 	}
 	
 	@Override
