@@ -83,12 +83,22 @@ public abstract class BaseResponse implements Response {
 				return false;
 			}
 		} catch (IOException e) {
-			Logger.w(getClass().getName(), "IOException in getContentAsString: " + e.getMessage());
+			Logger.w(getClass().getName(), "IOException in getContentToFile: " + e.getMessage());
 			return false;
 		}
 
+		FileOutputStream out = null;
+		try {
+			// Get an output stream to the file
+			out = new FileOutputStream(file);
+		} catch (IOException e) {
+			Logger.w(getClass().getName(), "IOException in readContentToFile: " + e.getMessage());
+			IOUtils.safeClose(input);
+			return false;
+		}
+		
 		long expectedSize = getContentLength();
-
+		
 		// Delete the file if it exists
 		if (file.exists()) {
 			file.delete();
@@ -96,11 +106,7 @@ public abstract class BaseResponse implements Response {
 		// Create the directory for the file
 		file.getParentFile().mkdirs();
 
-		FileOutputStream out = null;
 		try {
-			// Get an output stream to the file
-			out = new FileOutputStream(file);
-
 			byte[] buffer = new byte[1024];
 			long totalRead = 0;
 			int read;
