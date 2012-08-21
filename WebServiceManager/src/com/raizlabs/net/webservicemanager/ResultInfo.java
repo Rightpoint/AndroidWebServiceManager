@@ -7,6 +7,8 @@ import java.util.Date;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 
+import com.raizlabs.net.HttpUtils;
+
 import android.util.Log;
 
 /**
@@ -25,6 +27,8 @@ public class ResultInfo<ResultType> {
 	public Integer getResponseCode() { return ResponseCode; }
 	String ResponseMessage;
 	public String getResponseMessage() { return ResponseMessage; }
+	
+	public boolean isStatusOK() { return ResponseCode != null && HttpUtils.isResponseOK(ResponseCode); }
 	
 	boolean cancelled;
 	/**
