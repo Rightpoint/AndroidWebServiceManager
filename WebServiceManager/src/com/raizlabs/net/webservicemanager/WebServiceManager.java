@@ -57,7 +57,7 @@ public class WebServiceManager {
 			if (deltaConnections > 0) {
 				connectionSemaphore.release(deltaConnections);
 			} else if (deltaConnections < 0) {
-				connectionSemaphore.acquireUninterruptibly(deltaConnections);
+				connectionSemaphore.acquireUninterruptibly(-deltaConnections);
 			}
 		}
 		
