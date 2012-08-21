@@ -28,6 +28,12 @@ import com.raizlabs.tasks.RZAsyncTask;
 public abstract class BaseWebServiceRequestAsyncTask<ResultType> extends RZAsyncTask<Void, WebServiceProgress, ResultInfo<ResultType>> {
 	
 	private WebServiceManager webServiceManager;
+	/**
+	 * @return The {@link WebServiceManager} to be used to execute the request.
+	 */
+	protected WebServiceManager getWebServiceManager() {
+		return webServiceManager;
+	}
 	
 	private WebServiceRequest<ResultType> request;
 	/**
@@ -52,6 +58,9 @@ public abstract class BaseWebServiceRequestAsyncTask<ResultType> extends RZAsync
 	}
 
 	private RequestMode requestMode;
+	protected RequestMode getRequestMode() {
+		return requestMode;
+	}
 	/**
 	 * Sets the {@link RequestMode} to use to make the request via the
 	 * {@link WebServiceManager}.
