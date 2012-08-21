@@ -198,7 +198,7 @@ public class WebServiceManager {
 		
 		// Translate the response, or null if we didn't get one
 		ResultType result = request.translateHTTPResponse(response, HttpMethod.fromName(httpRequest.getMethod()));
-		ResultInfo<ResultType> resultInfo = new ResultInfo<ResultType>(result, new Date(), response);
+		BasicResultInfo<ResultType> resultInfo = new BasicResultInfo<ResultType>(result, new Date(), response);
 		// If the request was cancelled, indicate it in the result info
 		if (request.isCancelled()) {
 			resultInfo.setCancelled(true);
@@ -250,7 +250,7 @@ public class WebServiceManager {
 						// We may hit errors if the connection is closed etc.
 					}
 					
-					resultInfo = new ResultInfo<ResultType>(result, new Date(), connection);
+					resultInfo = new BasicResultInfo<ResultType>(result, new Date(), connection);
 				}
 			}
 		} catch (IOException e) {
@@ -267,7 +267,7 @@ public class WebServiceManager {
 
 		// If we never created a result, create a nulled on
 		if (resultInfo == null) {
-			resultInfo = new ResultInfo<ResultType>(null, new Date(), (HttpURLConnection)null);
+			resultInfo = new FailedResultInfo<ResultType>(new Date());
 		}
 		
 		// If the request was cancelled, indicate it in the result info

@@ -1,6 +1,7 @@
 package com.raizlabs.net.requests;
 
 import com.raizlabs.events.ProgressListener;
+import com.raizlabs.net.webservicemanager.FailedResultInfo;
 import com.raizlabs.net.webservicemanager.RequestMode;
 import com.raizlabs.net.webservicemanager.ResultInfo;
 import com.raizlabs.net.webservicemanager.WebServiceManager;
@@ -12,7 +13,7 @@ import com.raizlabs.tasks.RZAsyncTask;
  * {@link WebServiceRequest} using a given {@link WebServiceManager}
  * and returns the result. This class is abstract, and allows sub
  * classes to just implement the request creation. To simply use an
- * exisint request, see {@link WebServiceRequestAsyncTask}.
+ * existing request, see {@link WebServiceRequestAsyncTask}.
  * <br><br> 
  * Allows for cancellation via {@link #cancelRequest()}, though the
  * request can always be cancelled via {@link WebServiceRequest#cancel()}.
@@ -93,7 +94,7 @@ public abstract class BaseWebServiceRequestAsyncTask<ResultType> extends RZAsync
 	protected ResultInfo<ResultType> doInBackground(Void... params) {
 		// If we have no request, abort.
 		if (getRequest() == null) {
-			return null;
+			return new FailedResultInfo<ResultType>();
 		}
 		
 		final BaseWebServiceProgress progress = new BaseWebServiceProgress(-1, -1);
