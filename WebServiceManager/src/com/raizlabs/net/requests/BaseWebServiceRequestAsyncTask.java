@@ -54,6 +54,17 @@ public abstract class BaseWebServiceRequestAsyncTask<ResultType> extends RZAsync
 	protected WebServiceRequest<ResultType> getRequest() {
 		if (request == null) {
 			request = createRequest();
+			if (request != null) {
+				request.addProgressListener(new ProgressListener() {
+					final BaseWebServiceProgress progress = new BaseWebServiceProgress(-1, -1);
+					@Override
+					public void onProgressUpdate(long currentProgress, long maxProgress) {
+						progress.currentProgress = currentProgress;
+						progress.maxProgress = maxProgress;
+						publishProgress(progress);
+					}
+				});
+			}
 		}
 		return request;
 	}
@@ -96,16 +107,6 @@ public abstract class BaseWebServiceRequestAsyncTask<ResultType> extends RZAsync
 		if (getRequest() == null) {
 			return new FailedResultInfo<ResultType>();
 		}
-		
-		final BaseWebServiceProgress progress = new BaseWebServiceProgress(-1, -1);
-		request.addProgressListener(new ProgressListener() {
-			@Override
-			public void onProgressUpdate(long currentProgress, long maxProgress) {
-				progress.currentProgress = currentProgress;
-				progress.maxProgress = maxProgress;
-				publishProgress(progress);
-			}
-		});
 		
 		if (isCancelled()) {
 			request.cancel();
