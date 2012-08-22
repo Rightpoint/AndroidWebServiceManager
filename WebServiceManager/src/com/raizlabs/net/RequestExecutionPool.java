@@ -118,9 +118,14 @@ public class RequestExecutionPool {
 	 * Aborts the given {@link HttpUriRequest}.
 	 * @param request
 	 */
-	public void abortRequest(HttpUriRequest request) {
-		request.abort();
-		removeRequest(request);
+	public void abortRequest(final HttpUriRequest request) {
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				request.abort();
+				removeRequest(request);
+			}
+		}).start();
 	}
 	
 	/**
