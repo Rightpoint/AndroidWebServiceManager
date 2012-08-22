@@ -43,7 +43,7 @@ public class ProgressInputStreamEntity extends InputStreamEntity {
 			@Override
 			public void write(int oneByte) throws IOException {
 				outstream.write(oneByte);
-				if (++totalWritten - lastUpdate >= updateInterval) {
+				if (listener != null && ++totalWritten - lastUpdate >= updateInterval) {
 					listener.onProgressUpdate(totalWritten, length);
 					lastUpdate = totalWritten;
 				}
