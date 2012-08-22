@@ -28,7 +28,10 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 	 * @see #setMaxConnections(int)
 	 */
 	public int getMaxConnections() { return maxConnections; }
-	public void setMaxConnections(int connections) { this.maxConnections = connections; }
+	public void setMaxConnections(int connections) { 
+		this.maxConnections = connections;
+		init();
+	}
 
 	private ProtocolVersion protocolVersion;
 	/**

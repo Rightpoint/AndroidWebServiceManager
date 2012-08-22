@@ -6,6 +6,8 @@ import java.util.HashSet;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.protocol.BasicHttpContext;
+import org.apache.http.protocol.HttpContext;
 
 /**
  * A class which maintains a set of executing requests.
@@ -75,8 +77,9 @@ public class RequestExecutionPool {
 	 */
 	public HttpResponse doRequest(HttpUriRequest request) {
 		addRequest(request);
+		HttpContext context = new BasicHttpContext();
 		try {
-			return clientProvider.getClient().execute(request);
+			return getClientProvider().getClient().execute(request, context);
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {

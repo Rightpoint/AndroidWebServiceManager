@@ -62,6 +62,9 @@ public class WebServiceManager {
 		}
 		
 		this.maxConnections = maxConnections;
+		if (getRequestExectionQueue() != null && getRequestExectionQueue().getClientProvider() != null) {
+			getRequestExectionQueue().getClientProvider().setMaxConnections(maxConnections);
+		}
 	}
 
 	private RequestMode defaultRequestMode;
