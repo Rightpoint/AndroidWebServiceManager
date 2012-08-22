@@ -22,10 +22,18 @@ public class BaseWebServiceProgress implements WebServiceProgress {
 	public long getCurrentProgress() {
 		return currentProgress;
 	}
+	
+	public void setCurrentProgress(long currentProgress) {
+		this.currentProgress = currentProgress;
+	}
 
 	@Override
 	public long getMaximumProgress() {
 		return maxProgress;
+	}
+	
+	public void setMaximumProgress(long maxProgress) {
+		this.maxProgress = maxProgress;
 	}
 
 }
