@@ -91,7 +91,12 @@ public abstract class BaseWebServiceRequestAsyncTask<ResultType> extends RZAsync
 	 * cancelling this {@link BaseWebServiceRequestAsyncTask}. 
 	 */
 	public void cancelRequest() {
-		request.cancel();
+		if (request == null) {
+			request = getRequest();
+		}
+		if (request != null) {
+			request.cancel();
+		}
 		this.cancel(true);
 	}
 	
