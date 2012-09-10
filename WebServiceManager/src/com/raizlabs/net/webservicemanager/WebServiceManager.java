@@ -8,10 +8,16 @@ import java.util.concurrent.Semaphore;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
+import android.os.AsyncTask;
+
+import com.raizlabs.events.EventListener;
 import com.raizlabs.events.SimpleEventListener;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.RequestExecutionPool;
+import com.raizlabs.net.requests.BaseWebServiceRequestAsyncTask;
 import com.raizlabs.net.requests.WebServiceRequest;
+import com.raizlabs.net.requests.WebServiceRequestAsyncTask;
+import com.raizlabs.tasks.RZAsyncTaskListener;
 
 /**
  * Class which executes requests and manages a set of maximum connections.
@@ -279,5 +285,41 @@ public class WebServiceManager {
 		}
 		
 		return resultInfo;
+	}
+	
+	/**
+	 * Performs the given request on an {@link AsyncTask} in parallel, attaching the given
+	 * {@link RZAsyncTaskListener}.
+	 * @param request The {@link WebServiceRequest} to execute.
+	 * @param listener A {@link RZAsyncTaskListener} which will be attached to the task
+	 * and receive event calls.
+	 */
+	public <ResultType> void doRequestOnAsyncTask(WebServiceRequest<ResultType> request,
+			RZAsyncTaskListener<WebServiceProgress, ResultInfo<ResultType>> listener) {
+		BaseWebServiceRequestAsyncTask<ResultType> task = new WebServiceRequestAsyncTask<ResultType>(request, this);
+		task.addRZAsyncTaskListener(listener);
+		task.executeInParallel();
+	}
+	
+	/**
+	 * Performs the given request on an {@link AsyncTask} in parallel, and calls the
+	 * given {@link EventListener} when the request completes or is cancelled.
+	 * @param request The {@link WebServiceRequest} to execute.
+	 * @param completionListener An {@link EventListener} which will be called with
+	 * the request as the sender, with the result as the data. This will be called when
+	 * the request completes or is cancelled.
+	 */
+	public <ResultType> void doRequestOnAsyncTask(final WebServiceRequest<ResultType> request,
+			final EventListener<ResultInfo<ResultType>> completionListener) {
+		doRequestOnAsyncTask(request, new RZAsyncTaskListener<WebServiceProgress, ResultInfo<ResultType>>() {
+			@Override
+			public void onPostExecute(ResultInfo<ResultType> result) {
+				completionListener.onEvent(request, result);
+			}
+			
+			public void onCancelled(com.raizlabs.net.webservicemanager.ResultInfo<ResultType> result) {
+				completionListener.onEvent(request, result);
+			}
+		});
 	}
 }
