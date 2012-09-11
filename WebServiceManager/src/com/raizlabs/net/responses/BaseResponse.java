@@ -86,7 +86,14 @@ public abstract class BaseResponse implements Response {
 			Logger.w(getClass().getName(), "IOException in getContentToFile: " + e.getMessage());
 			return false;
 		}
-
+		
+		// Delete the file if it exists
+		if (file.exists()) {
+			file.delete();
+		}
+		// Create the directory for the file
+		file.getParentFile().mkdirs();
+		
 		FileOutputStream out = null;
 		try {
 			// Get an output stream to the file
@@ -98,13 +105,6 @@ public abstract class BaseResponse implements Response {
 		}
 		
 		long expectedSize = getContentLength();
-		
-		// Delete the file if it exists
-		if (file.exists()) {
-			file.delete();
-		}
-		// Create the directory for the file
-		file.getParentFile().mkdirs();
 
 		try {
 			byte[] buffer = new byte[1024];
