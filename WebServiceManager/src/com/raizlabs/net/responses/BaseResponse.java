@@ -121,8 +121,8 @@ public abstract class BaseResponse implements Response {
 				}
 			}
 			// If the expected size matches, we succeeded.
-			// If the expected size was not defined, we still return false.
-			return totalRead == expectedSize;
+			// If the expected size was not defined, we return true as we don't know if it failed.
+			return expectedSize == -1 || totalRead == expectedSize;
 		} catch (IOException ex) {
 			Logger.w(getClass().getName(), "IOException in readContentToFile: " + ex.getMessage());
 			return false;
