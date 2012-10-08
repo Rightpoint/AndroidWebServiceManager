@@ -9,6 +9,7 @@ import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
 import org.apache.http.conn.scheme.SocketFactory;
+import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
@@ -177,7 +178,7 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 	 * {@link SchemeRegistry} for HTTPS calls.
 	 */
 	protected SocketFactory getHttpsSocketFactory() {
-		return PlainSocketFactory.getSocketFactory();
+		return SSLSocketFactory.getSocketFactory();
 	}
 	
 	@Override
