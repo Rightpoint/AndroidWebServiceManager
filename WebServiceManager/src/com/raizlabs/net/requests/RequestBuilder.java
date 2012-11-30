@@ -230,6 +230,20 @@ public class RequestBuilder {
 		
 		return this;
 	}
+	
+	/**
+	 * Sets a string to be used as the body of the request. This will overwrite
+	 * any existing input.
+	 * @param string The string to write as the body.
+	 * @param progressListener The {@link ProgressListener} which will be called
+	 * periodically to be notified of the progress.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder setStringInput(String string, ProgressListener progressListener) {
+		setInputStream(IOUtils.getInputStream(string), string.length(), progressListener);
+		
+		return this;
+	}
 
 	private void putEntries(Collection<NameValuePair> entries, Map<String, String> map) {
 		for (NameValuePair entry : entries) {
