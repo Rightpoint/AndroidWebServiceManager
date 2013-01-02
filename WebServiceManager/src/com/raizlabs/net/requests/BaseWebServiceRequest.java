@@ -143,12 +143,20 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	public ResultType translateHTTPResponse(HttpResponse response, HttpMethod requestMethod) {
 		// Wrap the HttpResponse into a Response implementation
 		// and have subclasses translate it
-		return translate(new HttpClientResponse(response, requestMethod));
+		final Response wrappedResponse = new HttpClientResponse(response, requestMethod);
+		ResultType result = translate(wrappedResponse);
+		// Close the response to free any resources
+		wrappedResponse.close();
+		return result;
 	}
 	public ResultType translateConnection(HttpURLConnection connection) {
 		// Wrap the connection into a Response implementation
 		// and have subclasses translate it
-		return translate(new HttpURLConnectionResponse(connection));
+		final Response wrappedResponse = new HttpURLConnectionResponse(connection); 
+		ResultType result = translate(wrappedResponse);
+		// Close the response to free any resources
+		wrappedResponse.close();
+		return result;
 	};
 	
 	@Override

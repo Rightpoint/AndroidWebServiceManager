@@ -77,4 +77,11 @@ public class HttpURLConnectionResponse extends BaseResponse {
 	public HttpMethod getRequestMethod() {
 		return connection == null ? null : HttpMethod.fromName(connection.getRequestMethod());
 	}
+
+	@Override
+	public void close() {
+		if (connection != null) {
+			connection.disconnect();
+		}
+	}
 }

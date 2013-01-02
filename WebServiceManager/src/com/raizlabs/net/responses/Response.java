@@ -114,4 +114,9 @@ public interface Response {
 	 * the lengths didn't match or weren't defined.
 	 */
 	public boolean readContentToFile(File file, ProgressListener progressListener);
+	
+	/**
+	 * Closes any connections or resources connected to this {@link Response}.
+	 */
+	public void close();
 }

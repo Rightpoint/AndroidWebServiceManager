@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 
 import com.raizlabs.net.HttpMethod;
@@ -100,6 +101,22 @@ public class HttpClientResponse extends BaseResponse {
 	@Override
 	public HttpMethod getRequestMethod() {
 		return requestMethod;
+	}
+
+	@Override
+	public void close() {
+		// Try to consume the content handled by the given entity
+		// Not doing this may leave the connection open and can be dangerous
+		// if reusing the client.
+		// See: https://groups.google.com/forum/?fromgroups=#!topic/android-developers/uL8ah41voW4
+		if (response != null) {
+			HttpEntity entity = response.getEntity();
+			if (entity != null) {
+				try {
+					entity.consumeContent();
+				} catch (IOException e) { }
+			}
+		}
 	}
 
 
