@@ -5,6 +5,8 @@ import org.apache.http.ProtocolVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.params.ConnManagerParams;
+import org.apache.http.conn.params.ConnPerRoute;
+import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -119,6 +121,14 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 	protected HttpParams getConnectionParams() {
 		HttpParams params = new BasicHttpParams();
 		ConnManagerParams.setMaxTotalConnections(params, getMaxConnections());
+		ConnManagerParams.setMaxConnectionsPerRoute(params, new ConnPerRoute() {
+			final int maxConnections = getMaxConnections();
+			@Override
+			public int getMaxForRoute(HttpRoute route) {
+				return maxConnections;
+			}
+		});
+		
 		HttpProtocolParams.setVersion(params, getProtocolVersion());
 		return params;
 	}
