@@ -3,13 +3,21 @@ package com.raizlabs.net.webservicemanager;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.Date;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
 import android.os.AsyncTask;
 
+import com.raizlabs.concurrent.BasePrioritizedRunnable;
+import com.raizlabs.concurrent.Prioritized;
+import com.raizlabs.concurrent.PrioritizedRunnable;
+import com.raizlabs.concurrent.Prioritized.Priority;
 import com.raizlabs.events.EventListener;
 import com.raizlabs.events.SimpleEventListener;
 import com.raizlabs.net.HttpMethod;
@@ -27,7 +35,7 @@ import com.raizlabs.tasks.RZAsyncTaskListener;
  */
 public class WebServiceManager {
 	private static final int DEFAULT_MAX_CONNECTIONS = 5;
-
+	
 	private RequestExecutionPool requestQueue;
 	/**
 	 * @return The {@link RequestExecutionPool} which is used for executing
@@ -42,6 +50,7 @@ public class WebServiceManager {
 	public void setRequestExecutionQueue(RequestExecutionPool queue) { this.requestQueue = queue; }
 
 	private Semaphore connectionSemaphore;
+	private ThreadPoolExecutor backgroundPoolExecutor;
 	
 	private int maxConnections;
 	/**
@@ -71,6 +80,9 @@ public class WebServiceManager {
 		if (getRequestExectionQueue() != null && getRequestExectionQueue().getClientProvider() != null) {
 			getRequestExectionQueue().getClientProvider().setMaxConnections(maxConnections);
 		}
+		if (backgroundPoolExecutor != null) {
+			backgroundPoolExecutor.setMaximumPoolSize(maxConnections);
+		}
 	}
 
 	private RequestMode defaultRequestMode;
@@ -99,7 +111,7 @@ public class WebServiceManager {
 	 */
 	public WebServiceManager(int maxConnections) {
 		this(new RequestExecutionPool(maxConnections));
-		setMaxConnections(maxConnections);
+		init(maxConnections);
 	}
 
 	/**
@@ -112,7 +124,7 @@ public class WebServiceManager {
 	 */
 	public WebServiceManager(RequestExecutionPool queue) {
 		setRequestExecutionQueue(queue);
-		setMaxConnections(DEFAULT_MAX_CONNECTIONS);
+		init(DEFAULT_MAX_CONNECTIONS);
 		this.defaultRequestMode = RequestMode.HttpClient;
 	}
 
@@ -126,9 +138,26 @@ public class WebServiceManager {
 	 */
 	public WebServiceManager(int maxConnections, RequestExecutionPool queue) {
 		setRequestExecutionQueue(queue);
-		setMaxConnections(maxConnections);
+		init(maxConnections);
 		queue.getClientProvider().setMaxConnections(maxConnections);
 		this.defaultRequestMode = RequestMode.HttpClient;
+	}
+	
+	private void init(int maxConnections) {
+		backgroundPoolExecutor = createBackgroundThreadPool(maxConnections);
+		setMaxConnections(maxConnections);
+	}
+	
+	/**
+	 * Called to get the {@link ThreadPoolExecutor} to use to execute background
+	 * requests. 
+	 * @param maxConnections The maximum number of connections allowed.
+	 * @return The {@link ThreadPoolExecutor} to use to execute background requests.
+	 */
+	protected ThreadPoolExecutor createBackgroundThreadPool(int maxConnections) {
+		final BlockingQueue<Runnable> queue = new PriorityBlockingQueue<Runnable>();
+		// Keep 1 thread alive at all times, keep idle threads alive for 3 seconds
+		return new ThreadPoolExecutor(1, maxConnections, 3, TimeUnit.SECONDS, queue);
 	}
 
 	private void beginConnection() {
@@ -288,15 +317,82 @@ public class WebServiceManager {
 	}
 	
 	/**
+	 * Performs the given {@link WebServiceRequest} on a background thread, with the normal priority,
+	 * calling the given {@link EventListener} when completed.
+	 * @param request The {@link WebServiceRequest} to execute.
+	 * @param listener The {@link EventListener} to call when the request completes. Optional.
+	 * predefined values.
+	 */
+	public <T> void doRequestInBackground(WebServiceRequest<T> request, EventListener<ResultInfo<T>> listener) {
+		doRequestInBackground(request, listener, Priority.NORMAL);
+	}
+	
+	/**
+	 * Performs the given {@link WebServiceRequest} on a background thread, with the given priority,
+	 * calling the given {@link EventListener} when completed.
+	 * @param request The {@link WebServiceRequest} to execute.
+	 * @param listener The {@link EventListener} to call when the request completes. Optional.
+	 * @param priority The priority to execute the request with. See {@link Priority} for
+	 * predefined values.
+	 */
+	public <T> void doRequestInBackground(
+			WebServiceRequest<T> request,
+			EventListener<ResultInfo<T>> listener,
+			int priority) {
+		
+		doRequestInBackground(request, defaultRequestMode, listener, priority);
+	}
+	
+	/**
+	 * Performs the given {@link WebServiceRequest} on a background thread, with the given priority,
+	 * calling the given {@link EventListener} when completed.
+	 * @param request The {@link WebServiceRequest} to execute.
+	 * @param mode The {@link RequestMode} to use to execute the request.
+	 * @param listener The {@link EventListener} to call when the request completes. Optional.
+	 * @param priority The priority to execute the request with. See {@link Priority} for
+	 * predefined values.
+	 */
+	public <T> void doRequestInBackground(
+			WebServiceRequest<T> request,
+			RequestMode mode,
+			EventListener<ResultInfo<T>> listener,
+			int priority) {
+		backgroundPoolExecutor.execute(createRunnable(request, mode, listener, priority));
+	}
+	
+	private <T> PrioritizedRunnable createRunnable(
+			final WebServiceRequest<T> request,
+			final RequestMode mode,
+			final EventListener<ResultInfo<T>> listener,
+			int priority) {
+		
+		return new DownloadRunnable(priority) {
+			@Override
+			public void run() {
+				ResultInfo<T> result = WebServiceManager.this.doRequest(request, mode);
+				if (listener != null) listener.onEvent(WebServiceManager.this, result);
+			}
+		};
+	}
+	
+	private static abstract class DownloadRunnable extends BasePrioritizedRunnable implements Comparable<DownloadRunnable> {
+		public DownloadRunnable(int priority) { super(priority); }
+		@Override
+		public int compareTo(DownloadRunnable another) {
+			return Prioritized.COMPARATOR_HIGH_FIRST.compare(this, another);
+		}
+	}
+	
+	/**
 	 * Performs the given request on an {@link AsyncTask} in parallel, attaching the given
 	 * {@link RZAsyncTaskListener}.
 	 * @param request The {@link WebServiceRequest} to execute.
 	 * @param listener A {@link RZAsyncTaskListener} which will be attached to the task
 	 * and receive event calls.
 	 */
-	public <ResultType> void doRequestOnAsyncTask(WebServiceRequest<ResultType> request,
-			RZAsyncTaskListener<WebServiceProgress, ResultInfo<ResultType>> listener) {
-		BaseWebServiceRequestAsyncTask<ResultType> task = new WebServiceRequestAsyncTask<ResultType>(request, this);
+	public <T> void doRequestOnAsyncTask(WebServiceRequest<T> request,
+			RZAsyncTaskListener<WebServiceProgress, ResultInfo<T>> listener) {
+		BaseWebServiceRequestAsyncTask<T> task = new WebServiceRequestAsyncTask<T>(request, this);
 		task.addRZAsyncTaskListener(listener);
 		task.executeInParallel();
 	}
@@ -309,15 +405,15 @@ public class WebServiceManager {
 	 * the request as the sender, with the result as the data. This will be called when
 	 * the request completes or is cancelled.
 	 */
-	public <ResultType> void doRequestOnAsyncTask(final WebServiceRequest<ResultType> request,
-			final EventListener<ResultInfo<ResultType>> completionListener) {
-		doRequestOnAsyncTask(request, new RZAsyncTaskListener<WebServiceProgress, ResultInfo<ResultType>>() {
+	public <T> void doRequestOnAsyncTask(final WebServiceRequest<T> request,
+			final EventListener<ResultInfo<T>> completionListener) {
+		doRequestOnAsyncTask(request, new RZAsyncTaskListener<WebServiceProgress, ResultInfo<T>>() {
 			@Override
-			public void onPostExecute(ResultInfo<ResultType> result) {
+			public void onPostExecute(ResultInfo<T> result) {
 				completionListener.onEvent(request, result);
 			}
 			
-			public void onCancelled(com.raizlabs.net.webservicemanager.ResultInfo<ResultType> result) {
+			public void onCancelled(com.raizlabs.net.webservicemanager.ResultInfo<T> result) {
 				completionListener.onEvent(request, result);
 			}
 		});
