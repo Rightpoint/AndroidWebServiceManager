@@ -9,6 +9,8 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.net.ssl.HttpsURLConnection;
+
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
@@ -25,6 +27,9 @@ import com.raizlabs.net.RequestExecutionPool;
 import com.raizlabs.net.requests.BaseWebServiceRequestAsyncTask;
 import com.raizlabs.net.requests.WebServiceRequest;
 import com.raizlabs.net.requests.WebServiceRequestAsyncTask;
+import com.raizlabs.net.ssl.SimpleSSLSocketFactory;
+import com.raizlabs.net.ssl.TrustManager;
+import com.raizlabs.net.ssl.TrustManagerFactory;
 import com.raizlabs.tasks.RZAsyncTaskListener;
 
 /**
@@ -51,6 +56,8 @@ public class WebServiceManager {
 
 	private Semaphore connectionSemaphore;
 	private ThreadPoolExecutor backgroundPoolExecutor;
+	
+	private SimpleSSLSocketFactory sslSocketFactory;
 	
 	private int maxConnections;
 	/**
@@ -166,6 +173,28 @@ public class WebServiceManager {
 
 	private void endConnection() {
 		connectionSemaphore.release();
+	}
+	
+	/**
+	 * Sets the {@link TrustManager} to use to verify SSL connections.
+	 * @see TrustManagerFactory
+	 * @param manager The manager to use to verify SSL connections.
+	 */
+	public void setTrustManager(TrustManager manager) {
+		// Default to the default trust manager if nothing else was given
+		if (manager == null) {
+			manager = TrustManagerFactory.getDefaultTrustManager(null);
+		}
+		// Set the SSL Socket Factory to use this manager
+		if (sslSocketFactory == null) {
+			sslSocketFactory = new SimpleSSLSocketFactory(manager);
+		} else {
+			sslSocketFactory.setTrustManager(manager);
+		}
+		// Bind the socket factory
+		getRequestExectionQueue().getClientProvider().setHttpsSocketFactory(sslSocketFactory);
+		HttpsURLConnection.setDefaultHostnameVerifier(manager);
+		HttpsURLConnection.setDefaultSSLSocketFactory(sslSocketFactory.getSSLContext().getSocketFactory());
 	}
 
 	/**

@@ -1,6 +1,7 @@
 package com.raizlabs.net;
 
 import org.apache.http.client.HttpClient;
+import org.apache.http.conn.scheme.SocketFactory;
 
 /**
  * Interface which provides {@link HttpClient}s.
@@ -20,4 +21,24 @@ public interface HttpClientProvider {
 	 * @return The obtained {@linkd HttpClient}.
 	 */
 	public HttpClient getClient();
+	
+	/**
+	 * @return The {@link SocketFactory} that will be used to create HTTP Sockets.
+	 */
+	public SocketFactory getHttpSocketFactory();
+	/**
+	 * Sets the {@link SocketFactory} to use to create HTTP Sockets.
+	 * @param factory The factory to use.
+	 */
+	public void setHttpSocketFactory(SocketFactory factory);
+	/**
+	 * @return The {@link SocketFactory} that will be used to create HTTPS Sockets.
+	 */
+	public SocketFactory getHttpsSocketFactory();
+	/**
+	 * Sets the {@link SocketFactory} to use to create HTTPS Sockets.
+	 * @param factory The factory to use.
+	 */
+	public void setHttpsSocketFactory(SocketFactory factory);
+	
 }

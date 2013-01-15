@@ -57,6 +57,42 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 	 */
 	public void setProtocolVersion(ProtocolVersion version) { this.protocolVersion = version; }
 	
+	private SocketFactory httpFactory, httpsFactory;
+	
+	/**
+	 * Called to get the {@link SocketFactory} for HTTP calls, which
+	 * will be registered with the {@link SchemeRegistry}.
+	 * <br><br>
+	 * @see #getSchemeRegistry()
+	 * @return The {@link SocketFactory} to be registered with the
+	 * {@link SchemeRegistry} for HTTP calls.
+	 */
+	public SocketFactory getHttpSocketFactory() {
+		return httpFactory;
+	}
+
+	@Override
+	public void setHttpSocketFactory(SocketFactory factory) {
+		this.httpFactory = factory;
+	}
+	
+	/**
+	 * Called to get the {@link SocketFactory} for HTTPS calls, which
+	 * will be registered with the {@link SchemeRegistry}.
+	 * <br><br>
+	 * @see #getSchemeRegistry()
+	 * @return The {@link SocketFactory} to be registered with the
+	 * {@link SchemeRegistry} for HTTPS calls.
+	 */
+	public SocketFactory getHttpsSocketFactory() {
+		return httpsFactory;
+	}
+	
+	@Override
+	public void setHttpsSocketFactory(SocketFactory factory) {
+		this.httpsFactory = factory;
+	}
+	
 	/**
 	 * The {@link HttpClient} we will be reusing.
 	 */
@@ -77,6 +113,8 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 	public BasicHttpClientProvider(int maxConnections) {
 		this.maxConnections = maxConnections;
 		this.protocolVersion = HttpVersion.HTTP_1_1;
+		setHttpSocketFactory(PlainSocketFactory.getSocketFactory());
+		setHttpsSocketFactory(SSLSocketFactory.getSocketFactory());
 	}
 	
 	/**
@@ -165,30 +203,6 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 		schemeRegistry.register(new Scheme("http", getHttpSocketFactory(), 80));
 		schemeRegistry.register(new Scheme("https", getHttpsSocketFactory(), 443));
 		return schemeRegistry;
-	}
-	
-	/**
-	 * Called to get the {@link SocketFactory} for HTTP calls, which
-	 * will be registered with the {@link SchemeRegistry}.
-	 * <br><br>
-	 * @see #getSchemeRegistry()
-	 * @return The {@link SocketFactory} to be registered with the
-	 * {@link SchemeRegistry} for HTTP calls.
-	 */
-	protected SocketFactory getHttpSocketFactory() {
-		return PlainSocketFactory.getSocketFactory();
-	}
-	
-	/**
-	 * Called to get the {@link SocketFactory} for HTTPS calls, which
-	 * will be registered with the {@link SchemeRegistry}.
-	 * <br><br>
-	 * @see #getSchemeRegistry()
-	 * @return The {@link SocketFactory} to be registered with the
-	 * {@link SchemeRegistry} for HTTPS calls.
-	 */
-	protected SocketFactory getHttpsSocketFactory() {
-		return SSLSocketFactory.getSocketFactory();
 	}
 	
 	@Override
