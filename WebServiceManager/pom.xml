@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.raizlabs.net.webservicemanager</groupId>
     <artifactId>RZWebServiceManager</artifactId>
-    <packaging>jar</packaging>
+    <packaging>apklib</packaging>
     <name>RZWebServiceManager</name>
     <version>1.0</version>
 
@@ -12,15 +12,22 @@
         <dependency>
             <groupId>com.google.android</groupId>
             <artifactId>android</artifactId>
-            <version>2.3.3</version>
+
+            <version>4.1.1.4</version>
             <scope>provided</scope>
         </dependency>
 		<dependency>
 			<groupId>com.raizlabs.baseutils</groupId>
 			<artifactId>RZBaseUtils</artifactId>
-			<scope>compile</scope>
+			<type>apklib</type>
 			<version>1.0</version>
 		</dependency>
+		<dependency>
+            <groupId>com.googlecode.androidannotations</groupId>
+            <artifactId>androidannotations</artifactId>
+            <version>2.7</version>
+            <scope>provided</scope>
+        </dependency>
     </dependencies>
 
     <build>
