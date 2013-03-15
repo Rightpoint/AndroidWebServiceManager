@@ -192,6 +192,64 @@ public abstract class WebFileCache<Key> {
 		return false;
 	}
 	
+	private static class RequestLock {
+		public File file;
+		public boolean completed = false;
+		
+		public EventListener<File> completionListener = new EventListener<File>() {
+			@Override
+			public void onEvent(Object sender, File args) {
+				RequestLock requestLock = RequestLock.this;
+				synchronized (requestLock) {
+					requestLock.file = args;
+					requestLock.completed = true;
+					requestLock.notifyAll();
+				}
+			}
+		};
+	}
+	
+	/**
+	 * Retrieves the file for the given request with default priority. This call will block
+	 * until the request has completed.
+	 * @param request The {@link RequestBuilder} to execute to get the file.
+	 * @param forceDownload True to force the download, even if it is already cached.
+	 * @return The retrieved file, which may be null.
+	 */
+	public File getFileSynchronous(RequestBuilder request, final boolean forceDownload) {
+		final RequestLock requestLock = new RequestLock();
+		getFile(request, requestLock.completionListener);
+		
+		return waitForResult(requestLock);
+	}
+	
+	/**
+	 * Retrieves the file for the given request with given priority. This call will block
+	 * until the request has completed.
+	 * @param request The {@link RequestBuilder} to execute to get the file.
+	 * @param forceDownload True to force the download, even if it is already cached.
+	 * @param priority The priority of the download. See {@link Priority} for pre-defined values.
+	 * @return The retrieved file, which may be null.
+	 */
+	public File getFileSynchronous(RequestBuilder request, final boolean forceDownload, final int priority) {
+		final RequestLock requestLock = new RequestLock();
+		getFile(request, requestLock.completionListener, priority);
+		
+		return waitForResult(requestLock);
+	}
+	
+	private File waitForResult(RequestLock requestLock) {
+		while (!requestLock.completed) {
+			synchronized (requestLock) {
+				try {
+					requestLock.wait();
+				} catch (InterruptedException e) { }
+			}
+		}
+		
+		return requestLock.file;
+	}
+	
 	/**
 	 * Gets the {@link WebServiceRequest} to use to perform the given request and
 	 * store it in the given {@link File}.
