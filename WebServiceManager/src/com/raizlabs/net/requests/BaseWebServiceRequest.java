@@ -54,9 +54,7 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	 * Flag that the request has started
 	 */
 	private boolean isStarted = false;
-	/**
-	 * @return True if this request has been started
-	 */
+	@Override
 	public boolean isStarted() {
 		synchronized (getStatusLock()) {
 			return isStarted;

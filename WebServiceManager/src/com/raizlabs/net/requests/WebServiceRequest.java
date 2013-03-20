@@ -63,6 +63,11 @@ public interface WebServiceRequest<ResultType> extends HttpUriRequestable, UrlCo
 	void onStart();
 	
 	/**
+	 * @return True if this request has started.
+	 */
+	boolean isStarted();
+	
+	/**
 	 * Marks this {@link WebServiceRequest} as cancelled and alerts any listeners.
 	 * <br><br>
 	 * @see #isCancelled()

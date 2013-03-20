@@ -32,6 +32,75 @@ import com.raizlabs.net.webservicemanager.WebServiceManager;
  */
 public abstract class WebFileCache<Key> {
 	/**
+	 * Class which contains the result of an asynchronous {@link WebFileCache} request.	 *
+	 */
+	public interface WebFileCacheResult {
+		/**
+		 * @return True if the request has completed
+		 */
+		public boolean isCompleted();
+		/**
+		 * Cancels this request
+		 */
+		public void cancel();
+		/**
+		 * @return True if the request has started executing.
+		 */
+		public boolean isStarted();
+		/**
+		 * @return The event which will be called when the request completes
+		 */
+		public Event<File> getCompletionEvent();
+	}
+	
+	private static class BasicWebFileCacheResult implements WebFileCacheResult {
+		boolean isCompleted;
+		WebServiceRequest<Boolean> request;
+		Event<File> completionEvent;
+		public Event<File> getCompletionEvent() { return completionEvent; }
+		
+		public BasicWebFileCacheResult() {
+			this.isCompleted = false;
+			this.completionEvent = new Event<File>();
+		}
+		
+		void setCompleted(boolean completed) {
+			synchronized (this) {
+				this.isCompleted = completed;
+			}
+		}
+		
+		void onCompleted(Object sender, File args) {
+			synchronized (this) {
+				setCompleted(true);
+				completionEvent.raiseEvent(sender, args);
+			}
+		}
+		
+		public boolean isCompleted() {
+			synchronized (this) {
+				return isCompleted;
+			}
+		}
+		
+		@Override
+		public void cancel() {
+			if (request != null) {
+				request.cancel();
+			}
+		}
+		
+		@Override
+		public boolean isStarted() {
+			if (request != null) {
+				return request.isStarted();
+			} else {
+				return false;
+			}
+		}
+	}
+	
+	/**
 	 * Map of Events for download completion, containing all listeners.
 	 */
 	private ConcurrentHashMap<Key, Event<File>> downloadEvents;
@@ -94,10 +163,11 @@ public abstract class WebFileCache<Key> {
 	 * on the same thread, otherwise it will be retrieved asynchronously.
 	 * @param request The {@link RequestBuilder} to execute to get the file.
 	 * @param completionListener An {@link EventListener} to call when the file is retrieved. This will be called
-	 * with null if the download fails.
-	 * @return True if the data was already cached and the listener was already called.
+	 * with null if the download fails. This listener will be automatically added to the returned
+	 * {@link WebFileCacheResult}
+	 * @return An {@link WebFileCacheResult} object which provides access to the request status and result.
 	 */
-	public boolean getFile(final RequestBuilder request, final EventListener<File> completionListener) {
+	public WebFileCacheResult getFile(final RequestBuilder request, final EventListener<File> completionListener) {
 		return getFile(request, completionListener, Priority.NORMAL);
 	}
 
@@ -107,11 +177,12 @@ public abstract class WebFileCache<Key> {
 	 * returns on the same thread, otherwise it will be retrieved asynchronously.
 	 * @param request The {@link RequestBuilder} to execute to get the file.
 	 * @param completionListener An {@link EventListener} to call when the file is retrieved. This will be called
-	 * with null if the download fails.
+	 * with null if the download fails. This listener will be automatically added to the returned
+	 * {@link WebFileCacheResult}
 	 * @param priority The priority of the download. See {@link Priority} for pre-defined values.
-	 * @return True if the data was already cached and the listener was already called.
+	 * @return An {@link WebFileCacheResult} object which provides access to the request status and result.
 	 */
-	public boolean getFile(final RequestBuilder request, final EventListener<File> completionListener, int priority) {
+	public WebFileCacheResult getFile(final RequestBuilder request, final EventListener<File> completionListener, int priority) {
 		return getFile(request, completionListener, false, priority);
 	}
 	
@@ -121,11 +192,12 @@ public abstract class WebFileCache<Key> {
 	 * returns on the same thread, otherwise it will be retrieved asynchronously.
 	 * @param request The {@link RequestBuilder} to execute to get the file.
 	 * @param completionListener An {@link EventListener} to call when the file is retrieved. This will be called
-	 * with null if the download fails.
+	 * with null if the download fails. This listener will be automatically added to the returned
+	 * {@link WebFileCacheResult}
 	 * @param forceDownload True to force the download, even if it is already cached.
-	 * @return True if the data was already cached and the listener was already called.
+	 * @return An {@link WebFileCacheResult} object which provides access to the request status and result.
 	 */
-	public boolean getFile(final RequestBuilder request, final EventListener<File> completionListener, boolean forceDownload) {
+	public WebFileCacheResult getFile(final RequestBuilder request, final EventListener<File> completionListener, boolean forceDownload) {
 		return getFile(request, completionListener, forceDownload, Priority.NORMAL);
 	}
 
@@ -136,25 +208,35 @@ public abstract class WebFileCache<Key> {
 	 * returns on the same thread, otherwise it will be retrieved asynchronously.
 	 * @param request The {@link RequestBuilder} to execute to get the file.
 	 * @param completionListener An {@link EventListener} to call when the file is retrieved. This will be called
-	 * with null if the download fails.
+	 * with null if the download fails. This listener will be automatically added to the returned
+	 * {@link WebFileCacheResult}
 	 * @param forceDownload True to force the download, even if it is already cached.
 	 * @param priority The priority of the download. See {@link Priority} for pre-defined values.
-	 * @return True if the data was already cached and the listener was already called.
+	 * @return An {@link WebFileCacheResult} object which provides access to the request status and result.
 	 */
-	public boolean getFile(final RequestBuilder request, final EventListener<File> completionListener, final boolean forceDownload, final int priority) {
+	public WebFileCacheResult getFile(final RequestBuilder request, final EventListener<File> completionListener, final boolean forceDownload, final int priority) {
 		// Get the key for the request
 		final Key key = getKeyForRequest(request);
 		// Get the local file we will find or store the file at
 		final File localFile = getFileForKey(key);
 
+		final BasicWebFileCacheResult requestInfo = new BasicWebFileCacheResult();
+		
 		// Synchronize on this for thread safety
 		// Don't want to try to download the same file twice etc
 		synchronized (this) {
 			// If it's being downloaded, subscribe the given completion listener to
 			// the event for the download
 			if (isDownloading(key)) {
-				if (completionListener != null) subscribeListener(key, completionListener);
-				return false;
+				subscribeListener(key, new EventListener<File>() {
+					@Override
+					public void onEvent(Object sender, File args) {
+						requestInfo.getCompletionEvent().raiseEvent(sender, args);
+					}
+				});
+				requestInfo.setCompleted(false);
+				requestInfo.completionEvent.addListener(completionListener);
+				return requestInfo;
 			}
 
 			// Otherwise, if it's downloaded, and we aren't forcing a download,
@@ -163,7 +245,8 @@ public abstract class WebFileCache<Key> {
 				if (completionListener != null) {
 					completionListener.onEvent(request, localFile);
 				}
-				return true;
+				requestInfo.setCompleted(true);
+				return requestInfo;
 			} else if (localFile.exists()) {
 				// If the local file exists, delete it
 				localFile.delete();
@@ -175,21 +258,26 @@ public abstract class WebFileCache<Key> {
 			EventListener<ResultInfo<Boolean>> listener = new EventListener<ResultInfo<Boolean>>() {
 				@Override
 				public void onEvent(Object sender, ResultInfo<Boolean> result) {
+					File file = null;
 					// If the request fails, delete the file and raise completion with no file
 					if (result == null || !result.getResult()) {
 						localFile.delete();
-						onDownloadComplete(key, request, null);
+						file = null;
 					} else {
 						// Otherwise, call the listener with the local file
-						onDownloadComplete(key, request, localFile);
+						file = localFile;
 					}
+					onDownloadComplete(key, request, file);
+					requestInfo.onCompleted(sender, file);
 				}
 			};
 			// Execute the request in the background with the specified priority
 			final WebServiceRequest<Boolean> download = getRequest(request, localFile);
+			requestInfo.request = download;
 			webServiceManager.doRequestInBackground(download, listener, priority);
+			requestInfo.setCompleted(false);
 		}
-		return false;
+		return requestInfo;
 	}
 	
 	private static class RequestLock {
@@ -427,10 +515,12 @@ public abstract class WebFileCache<Key> {
 		}
 
 		public void onDownloadComplete(File file) {
-			final long completedTime = System.currentTimeMillis();
-			synchronized (completedDownloads) {
-				preferences.edit().putLong(file.getAbsolutePath(), completedTime).commit();
-				completedDownloads.put(file, completedTime);
+			if (file != null && file.exists()) {
+				final long completedTime = System.currentTimeMillis();
+				synchronized (completedDownloads) {
+					preferences.edit().putLong(file.getAbsolutePath(), completedTime).commit();
+					completedDownloads.put(file, completedTime);
+				}
 			}
 		}
 
