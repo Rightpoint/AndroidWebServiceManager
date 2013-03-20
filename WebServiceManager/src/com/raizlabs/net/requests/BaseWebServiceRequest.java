@@ -45,6 +45,31 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 		return requestBuilder;
 	}
 	
+	@Override
+	public Object getStatusLock() {
+		return this;
+	}
+	
+	/**
+	 * Flag that the request has started
+	 */
+	private boolean isStarted = false;
+	/**
+	 * @return True if this request has been started
+	 */
+	public boolean isStarted() {
+		synchronized (getStatusLock()) {
+			return isStarted;
+		}
+	}
+	
+	@Override
+	public void onStart() {
+		synchronized (getStatusLock()) {
+			isStarted = true;
+		}
+	}
+	
 	/**
 	 * Cancellation flag
 	 */
@@ -56,7 +81,7 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	
 	@Override
 	public void cancel() {
-		synchronized(this) {
+		synchronized(getStatusLock()) {
 			cancelled = true;
 			// Call any listeners that are subscribed.
 			for (SimpleEventListener listener : cancelListeners) {
@@ -66,14 +91,14 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	}
 	
 	public boolean isCancelled() {
-		synchronized(this) {
+		synchronized(getStatusLock()) {
 			return cancelled;
 		}
 	}
 	
 	@Override
 	public void addOnCancelListener(SimpleEventListener listener) {
-		synchronized(this) {
+		synchronized(getStatusLock()) {
 			cancelListeners.add(listener);
 			// If we're already cancelled, call it immediately.
 			if (cancelled) {
@@ -84,7 +109,7 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	
 	@Override
 	public boolean removeOnCancelListener(SimpleEventListener listener) {
-		synchronized(this) {
+		synchronized(getStatusLock()) {
 			return cancelListeners.remove(listener);
 		}
 	}

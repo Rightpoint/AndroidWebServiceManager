@@ -49,6 +49,20 @@ public interface WebServiceRequest<ResultType> extends HttpUriRequestable, UrlCo
 	ResultType translateHTTPResponse(HttpResponse response, HttpMethod requestMethod);
 	
 	/**
+	 * Gets the object which is used as the lock for the status of this request.
+	 * Changes to the status of this request cannot be made without holding this
+	 * lock, including starting and canceling the request. Holding this lock
+	 * guarantees that the status will not change.
+	 * @return The lock to use for status changes.
+	 */
+	Object getStatusLock();
+	
+	/**
+	 * Called to indicate that this request is being started.
+	 */
+	void onStart();
+	
+	/**
 	 * Marks this {@link WebServiceRequest} as cancelled and alerts any listeners.
 	 * <br><br>
 	 * @see #isCancelled()

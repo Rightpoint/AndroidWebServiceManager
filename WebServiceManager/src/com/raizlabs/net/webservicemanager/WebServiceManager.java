@@ -237,7 +237,7 @@ public class WebServiceManager {
 	 * @param request The {@link WebServiceRequest} to execute.
 	 * @return The result.
 	 */
-	public <ResultType> ResultInfo<ResultType> doRequestViaClient(WebServiceRequest<ResultType> request) {
+	public <ResultType> ResultInfo<ResultType> doRequestViaClient(final WebServiceRequest<ResultType> request) {
 		HttpResponse response = null;
 		final HttpUriRequest httpRequest = request.getHttpUriRequest();
 
@@ -245,19 +245,41 @@ public class WebServiceManager {
 		if (!request.isCancelled()) {
 			// Wait for a connection to be available.
 			beginConnection();
-			// If the request is cancelled, abort the request. This may be called
-			// asynchronously
-			SimpleEventListener cancelListener = new SimpleEventListener() {
-				@Override
-				public void onEvent() {
-					requestQueue.abortRequest(httpRequest);
+			
+			boolean isCancelled = false;
+			// Lock on the status lock so that we know the status won't change
+			synchronized (request.getStatusLock()) {
+				// Indicate whether the request has been cancelled
+				isCancelled = request.isCancelled();
+				if (!isCancelled) {
+					// If it hasn't been cancelled, we're about to start it, so tell it
+					request.onStart();
+
+					// Listen for future cancels
+					SimpleEventListener cancelListener = new SimpleEventListener() {
+						@Override
+						public void onEvent() {
+							// If the request is cancelled, abort the request. This may be called
+							// asynchronously
+							requestQueue.abortRequest(httpRequest);
+							// Remove this listener so we don't get called twice
+							request.removeOnCancelListener(this);
+						}
+					};
+					request.addOnCancelListener(cancelListener);
 				}
-			};
-			try {
-			request.addOnCancelListener(cancelListener);
-			// Execute the request
-			response = requestQueue.doRequest(httpRequest);
-			} finally {
+			}
+			
+			// If the request wasn't cancelled, execute it
+			if (!isCancelled) {
+				try {
+					// Execute the request
+					response = requestQueue.doRequest(httpRequest);
+				} finally {
+					// Free the connection
+					endConnection();
+				}
+			} else {
 				// Free the connection
 				endConnection();
 			}
@@ -280,7 +302,7 @@ public class WebServiceManager {
 	 * @param request The {@link WebServiceRequest} to execute.
 	 * @return The result.
 	 */
-	public <ResultType> ResultInfo<ResultType> doRequestViaURLConnection(WebServiceRequest<ResultType> request) {
+	public <ResultType> ResultInfo<ResultType> doRequestViaURLConnection(final WebServiceRequest<ResultType> request) {
 		HttpURLConnection outerConnection = null;
 		ResultInfo<ResultType> resultInfo = null;
 		try {
@@ -288,6 +310,15 @@ public class WebServiceManager {
 			if (!request.isCancelled()) {
 				// Wait for a connection
 				beginConnection();
+				
+				// Lock on the status lock so that we know the status won't change
+				synchronized (request.getStatusLock()) {
+					if (!request.isCancelled()) {
+						// If it hasn't been cancelled, we're about to start it, so tell it
+						request.onStart();
+					}
+				}
+				
 				// Get the connection from the request. This should not actually open
 				// the connection, merely set it up.
 				final HttpURLConnection connection = request.getUrlConnection();
@@ -297,27 +328,40 @@ public class WebServiceManager {
 					// Connect
 					connection.connect();
 					
-					// If cancelled, disconnect the connection. From here on, the
-					// connection may be dead.
-					SimpleEventListener cancelListener = new SimpleEventListener() {
-						@Override
-						public void onEvent() {
-							connection.disconnect();
+					boolean isCancelled = false;
+					// Lock on the status lock so that we know the status won't change
+					synchronized(request.getStatusLock()) {
+						// Indicate whether the request has been cancelled
+						isCancelled = request.isCancelled();
+						if (!isCancelled) {		
+							// List for future cancels
+							SimpleEventListener cancelListener = new SimpleEventListener() {
+								@Override
+								public void onEvent() {
+									// If cancelled, disconnect the connection. From here on, the
+									// connection may be dead.
+									connection.disconnect();
+									request.removeOnCancelListener(this);
+								}
+							};
+							request.addOnCancelListener(cancelListener);
 						}
-					};
-					request.addOnCancelListener(cancelListener);
-					
-					ResultType result = null;
-					try {
-						// Try to allow the request to handle the connection
-						request.onConnected(connection);
-						// Try to translate the connection
-						result = request.translateConnection(connection);
-					} catch (Exception ex) {
-						// We may hit errors if the connection is closed etc.
 					}
 					
-					resultInfo = new BasicResultInfo<ResultType>(result, new Date(), connection);
+					// If the request wasn't cancelled, execute it
+					if (!isCancelled) {
+						ResultType result = null;
+						try {
+							// Try to allow the request to handle the connection
+							request.onConnected(connection);
+							// Try to translate the connection
+							result = request.translateConnection(connection);
+						} catch (Exception ex) {
+							// We may hit errors if the connection is closed etc.
+						}
+
+						resultInfo = new BasicResultInfo<ResultType>(result, new Date(), connection);
+					}
 				}
 			}
 		} catch (IOException e) {
