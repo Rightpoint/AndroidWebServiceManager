@@ -75,7 +75,12 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 	@Override
 	public Socket createSocket(Socket socket, String host, int port,
 			boolean autoClose) throws IOException, UnknownHostException {
-		return getSSLContext().getSocketFactory().createSocket(socket, host, port, autoClose);
+		SSLSocket sslSock = (SSLSocket) getSSLContext().getSocketFactory().createSocket(socket, host, port, autoClose);
+		if (!verifySocket(host, sslSock)) {
+			throw new IOException("Server was not trusted!");
+		}
+		
+		return sslSock;
 	}
 
 	@Override
@@ -92,7 +97,11 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 
 		InetSocketAddress remoteAddress = new InetSocketAddress(host, port);
 		SSLSocket sslsock = (SSLSocket) ((sock != null) ? sock : createSocket());
-
+		
+		if (!verifySocket(host, sslsock)) {
+			throw new IOException("Server was not trusted!");
+		}
+		
 		if ((localAddress != null) || (localPort > 0)) {
 			// we need to bind explicitly
 			if (localPort < 0) {
@@ -102,12 +111,19 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 					localPort);
 			sslsock.bind(isa);
 		}
-
 		sslsock.connect(remoteAddress, connTimeout);
 		sslsock.setSoTimeout(soTimeout);
 		return sslsock;
 	}
 
+	protected boolean verifySocket(String host, SSLSocket socket) {
+		if (trustManager != null) {
+			return trustManager.verify(host, socket.getSession());
+		} else {
+			return true;
+		}
+	}
+	
 	@Override
 	public boolean isSecure(Socket sock) throws IllegalArgumentException {
 		return true;

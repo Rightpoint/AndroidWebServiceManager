@@ -152,12 +152,12 @@ public class DelegatedX509TrustManager implements TrustManager {
 	}
 	@Override
 	public boolean verify(String hostname, SSLSession session) {
-		if (defaultVerifier != null && defaultVerifier.verify(hostname, session)) {
-				return true;
-		}
-		
 		if (certDelegate != null) {
 			return certDelegate.checkHostnameTrusted(hostname, session);
+		}
+		
+		if (defaultVerifier != null && defaultVerifier.verify(hostname, session)) {
+				return true;
 		}
 		
 		return false;
