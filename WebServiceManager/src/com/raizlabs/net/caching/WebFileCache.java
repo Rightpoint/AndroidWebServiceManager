@@ -306,7 +306,7 @@ public abstract class WebFileCache<Key> {
 	 */
 	public File getFileSynchronous(RequestBuilder request, final boolean forceDownload) {
 		final RequestLock requestLock = new RequestLock();
-		getFile(request, requestLock.completionListener);
+		getFile(request, requestLock.completionListener, forceDownload);
 		
 		return waitForResult(requestLock);
 	}
@@ -321,7 +321,7 @@ public abstract class WebFileCache<Key> {
 	 */
 	public File getFileSynchronous(RequestBuilder request, final boolean forceDownload, final int priority) {
 		final RequestLock requestLock = new RequestLock();
-		getFile(request, requestLock.completionListener, priority);
+		getFile(request, requestLock.completionListener, forceDownload, priority);
 		
 		return waitForResult(requestLock);
 	}
