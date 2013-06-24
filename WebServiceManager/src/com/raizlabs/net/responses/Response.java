@@ -95,8 +95,8 @@ public interface Response {
 	
 	/**
 	 * Gets the content of this {@link Response} by parsing the
-	 * stream as an {@link JSONObject}.
-	 * @return The {@link JSONObject} parsed from the stream, or null if it
+	 * stream as an {@link JSONArray}.
+	 * @return The {@link JSONArray} parsed from the stream, or null if it
 	 * couldn't be parsed.
 	 */
 	public JSONArray getContentAsJSONArray();

@@ -7,7 +7,7 @@ import com.raizlabs.net.responses.Response;
 
 /**
  * A request which parses the result as an {@link JSONArray}.
- * @author Dylan James
+ * @author Alex Wang
  *
  */
 public class JSONArrayRequest extends BaseWebServiceRequest<JSONArray>{
