@@ -22,6 +22,8 @@ import com.raizlabs.concurrent.PrioritizedRunnable;
 import com.raizlabs.concurrent.Prioritized.Priority;
 import com.raizlabs.events.EventListener;
 import com.raizlabs.events.SimpleEventListener;
+import com.raizlabs.net.Constants;
+import com.raizlabs.net.HttpClientProvider;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.RequestExecutionPool;
 import com.raizlabs.net.requests.BaseWebServiceRequestAsyncTask;
@@ -52,7 +54,11 @@ public class WebServiceManager {
 	 * {@link HttpUriRequest} ({@link RequestMode#HttpClient})
 	 * @param queue
 	 */
-	public void setRequestExecutionQueue(RequestExecutionPool queue) { this.requestQueue = queue; }
+	public void setRequestExecutionQueue(RequestExecutionPool queue) {
+		this.requestQueue = queue;
+		onConnectionTimeoutChanged(getConnectionTimeout());
+		onReadTimeoutChanged(getReadTimeout());
+	}
 
 	private Semaphore connectionSemaphore;
 	private ThreadPoolExecutor backgroundPoolExecutor;
@@ -92,6 +98,68 @@ public class WebServiceManager {
 		}
 	}
 
+	
+	private int connectionTimeout;
+	/**
+	 * @return The timeout for establishing a connection (in milliseconds)
+	 * @see #setConnectionTimeout(int)
+	 */
+	public int getConnectionTimeout() { return connectionTimeout; }
+	/**
+	 * Sets the timeout for establishing a connection. Setting this to zero
+	 * means a timeout is not used.
+	 * @param timeoutMillis The timeout value in milliseconds
+	 */
+	public void setConnectionTimeout(int timeoutMillis) { 
+		connectionTimeout = timeoutMillis;
+		onConnectionTimeoutChanged(timeoutMillis);
+	}
+	
+	/**
+	 * Called when the connection timeout may have changed and may need to be 
+	 * updated. This may be called more often than when it changes.
+	 * @param timeoutMillis The new connection timeout
+	 */
+	protected void onConnectionTimeoutChanged(int timeoutMillis) {
+		RequestExecutionPool requestPool = getRequestExectionQueue();
+		if (requestPool != null) {
+			HttpClientProvider clientProvider = requestPool.getClientProvider();
+			if (clientProvider != null) clientProvider.setConnectionTimeout(timeoutMillis);
+		}
+	}
+	
+	
+	private int readTimeout;
+	/**
+	 * @return The timeout for reading data from the connection (in milliseconds)
+	 */
+	public int getReadTimeout() { return readTimeout; }
+	/**
+	 * Sets teh timeout for establishing a connection. Setting this to zero
+	 * means a timeout is not used.
+	 * @param timeoutMillis The timeout value in milliseconds.
+	 */
+	public void setReadTimeout(int timeoutMillis) { 
+		readTimeout = timeoutMillis;
+		onReadTimeoutChanged(timeoutMillis);
+	}
+	
+	/**
+	 * Called when the read timeout may have changed and may need to be updated.
+	 * This may be called more often than when it changes.
+	 * @param timeoutMillis The new read timeout
+	 */
+	protected void onReadTimeoutChanged(int timeoutMillis) {
+		RequestExecutionPool requestPool = getRequestExectionQueue();
+		if (requestPool != null) {
+			HttpClientProvider clientProvider = requestPool.getClientProvider();
+			if (clientProvider != null) clientProvider.setReadTimeout(timeoutMillis);
+		}
+	}
+	
+	
+	
+	
 	private RequestMode defaultRequestMode;
 	/**
 	 * Sets the {@link RequestMode} which will be used by default when
@@ -153,6 +221,9 @@ public class WebServiceManager {
 	private void init(int maxConnections) {
 		backgroundPoolExecutor = createBackgroundThreadPool(maxConnections);
 		setMaxConnections(maxConnections);
+		
+		setConnectionTimeout(Constants.Defaults.ConnectionTimeoutMillis);
+		setReadTimeout(Constants.Defaults.ReadTimeoutMillis);
 	}
 	
 	/**
@@ -322,6 +393,8 @@ public class WebServiceManager {
 				// Get the connection from the request. This should not actually open
 				// the connection, merely set it up.
 				final HttpURLConnection connection = request.getUrlConnection();
+				connection.setConnectTimeout(getConnectionTimeout());
+				connection.setReadTimeout(getReadTimeout());
 				outerConnection = connection;
 				// Double check the request is still not cancelled.
 				if (!request.isCancelled()) {

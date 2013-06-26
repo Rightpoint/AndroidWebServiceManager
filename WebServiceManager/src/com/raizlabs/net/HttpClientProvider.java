@@ -41,4 +41,30 @@ public interface HttpClientProvider {
 	 */
 	public void setHttpsSocketFactory(SocketFactory factory);
 	
+	
+	
+	/**
+	 * @return The timeout for establishing a connection (in milliseconds)
+	 * @see #setConnectionTimeout(int)
+	 */
+	public int getConnectionTimeout();
+	/**
+	 * Sets the timeout for establishing a connection. Setting this to zero
+	 * means a timeout is not used.
+	 * @param timeoutMillis The timeout value in milliseconds
+	 */
+	public void setConnectionTimeout(int timeoutMillis);
+
+
+	/**
+	 * @return The timeout for reading data from the connection (in milliseconds)
+	 */
+	public int getReadTimeout();
+	/**
+	 * Sets the timeout for establishing a connection. Setting this to zero
+	 * means a timeout is not used.
+	 * @param timeoutMillis The timeout value in milliseconds.
+	 */
+	public void setReadTimeout(int timeoutMillis);
+	
 }

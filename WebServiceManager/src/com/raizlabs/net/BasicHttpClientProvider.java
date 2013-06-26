@@ -15,6 +15,7 @@ import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.BasicHttpParams;
+import org.apache.http.params.HttpConnectionParams;
 import org.apache.http.params.HttpParams;
 import org.apache.http.params.HttpProtocolParams;
 
@@ -37,6 +38,31 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 		init();
 	}
 
+	
+	private int connectionTimeout = Constants.Defaults.ConnectionTimeoutMillis;
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	public int getConnectionTimeout() { return connectionTimeout; }
+	/**
+	 * {@inheritDoc}
+	 */
+	public void setConnectionTimeout(int timeoutMillis) { connectionTimeout = timeoutMillis; }
+	
+	
+	private int readTimeout = Constants.Defaults.ReadTimeoutMillis;
+	/**
+	 * {@inheritDoc}
+	 */
+	public int getReadTimeout() { return readTimeout; }
+	/**
+	 * {@inheritDoc}
+	 */
+	public void setReadTimeout(int timeoutMillis) { readTimeout = timeoutMillis; }
+	
+	
+	
 	private ProtocolVersion protocolVersion;
 	/**
 	 * Gets the {@link ProtocolVersion} which will be used to construct the
@@ -166,6 +192,8 @@ public class BasicHttpClientProvider implements HttpClientProvider{
 				return maxConnections;
 			}
 		});
+		HttpConnectionParams.setConnectionTimeout(params, connectionTimeout);
+		HttpConnectionParams.setSoTimeout(params, readTimeout);
 		
 		HttpProtocolParams.setVersion(params, getProtocolVersion());
 		return params;
