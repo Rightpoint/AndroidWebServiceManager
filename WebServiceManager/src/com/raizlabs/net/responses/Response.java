@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import android.graphics.Bitmap;
@@ -91,6 +92,14 @@ public interface Response {
 	 * @return The decoded {@link Bitmap}.
 	 */
 	public Bitmap getContentAsBitmap(Rect outPadding, BitmapFactory.Options options);
+	
+	/**
+	 * Gets the content of this {@link Response} by parsing the
+	 * stream as an {@link JSONArray}.
+	 * @return The {@link JSONArray} parsed from the stream, or null if it
+	 * couldn't be parsed.
+	 */
+	public JSONArray getContentAsJSONArray();
 	
 	/**
 	 * Gets the content of this {@link Response} by parsing the

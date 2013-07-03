@@ -5,13 +5,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Rect;
 import android.graphics.BitmapFactory.Options;
+import android.graphics.Rect;
 import android.text.TextUtils;
 
 import com.raizlabs.baseutils.IOUtils;
@@ -55,6 +56,20 @@ public abstract class BaseResponse implements Response {
 			IOUtils.safeClose(content);
 		}
 
+		return null;
+	}
+	
+	@Override
+	public JSONArray getContentAsJSONArray() {
+		String content = getContentAsString();
+		if (!TextUtils.isEmpty(content)) {
+			try {
+				return new JSONArray(content);
+			} catch (JSONException e) {
+				Logger.w(getClass().getName(), "JSONException in getContentAsJSONArray: " + e.getMessage());
+			}
+		}
+		
 		return null;
 	}
 	
