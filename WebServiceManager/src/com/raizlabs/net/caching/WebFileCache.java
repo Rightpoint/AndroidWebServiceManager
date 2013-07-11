@@ -260,7 +260,7 @@ public abstract class WebFileCache<Key> {
 				public void onEvent(Object sender, ResultInfo<Boolean> result) {
 					File file = null;
 					// If the request fails, delete the file and raise completion with no file
-					if (result == null || !result.getResult()) {
+					if (result == null || result.getResult() == null || !result.getResult()) {
 						localFile.delete();
 						file = null;
 					} else {
