@@ -393,6 +393,7 @@ public class WebServiceManager {
 				// Get the connection from the request. This should not actually open
 				// the connection, merely set it up.
 				final HttpURLConnection connection = request.getUrlConnection();
+				setupConnection(connection);
 				connection.setConnectTimeout(getConnectionTimeout());
 				connection.setReadTimeout(getReadTimeout());
 				outerConnection = connection;
@@ -443,6 +444,7 @@ public class WebServiceManager {
 		} finally {
 			// No matter what, disconnect the connection if we have one
 			if (outerConnection != null) {
+				tearDownConnection(outerConnection);
 				outerConnection.disconnect();
 			}
 			// Release the connection
@@ -461,6 +463,20 @@ public class WebServiceManager {
 		
 		return resultInfo;
 	}
+	
+	/**
+	 * Called to set up an {@link HttpURLConnection}. This is called right
+	 * before the connection is opened so any set up may be done.
+	 * @param connection The connection about to be opened
+	 */
+	protected void setupConnection(HttpURLConnection connection) { }
+	/**
+	 * Called to tear down an {@link HttpURLConnection}. This is called after
+	 * the data has been consumed and the connection is about to be closed.
+	 * This can be used to do any final reading of things such as cookies.
+	 * @param connection The connection about to be closed
+	 */
+	protected void tearDownConnection(HttpURLConnection connection) { }
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the normal priority,
