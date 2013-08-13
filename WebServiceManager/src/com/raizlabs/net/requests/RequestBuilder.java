@@ -106,6 +106,20 @@ public class RequestBuilder {
 		params.put(key, value);
 		return this;
 	}
+	
+	/**
+	 * Adds a parameter to this request if the value is not null.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamIfNotNull(String key, String value) {
+		if (value != null)
+		{
+			addParam(key, value);
+		}
+		return this;
+	}
 
 	/**
 	 * Adds a {@link Collection} of {@link NameValuePair} as parameters to this
