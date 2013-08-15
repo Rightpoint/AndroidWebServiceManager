@@ -108,14 +108,14 @@ public class RequestBuilder {
 	}
 	
 	/**
-	 * Adds a parameter to this request if the value is not null.
+	 * Adds a parameter to the request if the value is not null.  Note that this method
+	 * will still add an empty string value to the request.
 	 * @param key The parameter key.
 	 * @param value The parameter value.
 	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
 	 */
 	public RequestBuilder addParamIfNotNull(String key, String value) {
-		if (value != null)
-		{
+		if (value != null) {
 			addParam(key, value);
 		}
 		return this;
