@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -15,11 +16,12 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
 import android.os.AsyncTask;
+import android.os.Process;
 
 import com.raizlabs.concurrent.BasePrioritizedRunnable;
 import com.raizlabs.concurrent.Prioritized;
-import com.raizlabs.concurrent.PrioritizedRunnable;
 import com.raizlabs.concurrent.Prioritized.Priority;
+import com.raizlabs.concurrent.PrioritizedRunnable;
 import com.raizlabs.events.EventListener;
 import com.raizlabs.events.SimpleEventListener;
 import com.raizlabs.net.Constants;
@@ -235,7 +237,20 @@ public class WebServiceManager {
 	protected ThreadPoolExecutor createBackgroundThreadPool(int maxConnections) {
 		final BlockingQueue<Runnable> queue = new PriorityBlockingQueue<Runnable>();
 		// Keep 1 thread alive at all times, keep idle threads alive for 3 seconds
-		return new ThreadPoolExecutor(1, maxConnections, 3, TimeUnit.SECONDS, queue);
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(1, maxConnections, 3, TimeUnit.SECONDS, queue);
+		executor.setThreadFactory(new ThreadFactory() {
+			@Override
+			public Thread newThread(final Runnable r) {
+				return new Thread(new Runnable() {
+					@Override
+					public void run() {
+						Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
+						r.run();	
+					}
+				});
+			}
+		});
+		return executor;
 	}
 
 	private void beginConnection() {
@@ -531,6 +546,7 @@ public class WebServiceManager {
 		return new DownloadRunnable(priority) {
 			@Override
 			public void run() {
+				Process.setThreadPriority(getPriority());
 				ResultInfo<T> result = WebServiceManager.this.doRequest(request, mode);
 				if (listener != null) listener.onEvent(WebServiceManager.this, result);
 			}
