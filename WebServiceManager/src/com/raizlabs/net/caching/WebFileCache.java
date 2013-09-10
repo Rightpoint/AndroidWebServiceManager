@@ -9,6 +9,9 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
+import android.os.Handler;
+import android.os.HandlerThread;
 
 import com.raizlabs.concurrent.ConcurrencyUtils;
 import com.raizlabs.concurrent.Prioritized.Priority;
@@ -112,6 +115,12 @@ public abstract class WebFileCache<Key> {
 	private CompletedDownloadManager completedDownloads;
 	private WebServiceManager webServiceManager;
 
+	private Handler backgroundHandler;
+	/**
+	 * @return A {@link Handler} which can be used to do background work
+	 */
+	Handler getBackgroundHandler() { return backgroundHandler; }
+	
 	/**
 	 * Constructs a new {@link WebFileCache} with the given parameters.
 	 * @param name The name of the {@link WebFileCache}. This should be unique
@@ -124,7 +133,12 @@ public abstract class WebFileCache<Key> {
 		this.webServiceManager = webManager;
 		downloadEvents = new ConcurrentHashMap<Key, Event<File>>();
 		currentDownloads = new HashSet<Key>();
-		completedDownloads = new CompletedDownloadManager(name, context);
+		
+		HandlerThread handlerThread = new HandlerThread("WebFileCache(" + name + ") Background");
+		handlerThread.start();
+		backgroundHandler = new Handler(handlerThread.getLooper());
+		
+		completedDownloads = new CompletedDownloadManager(name, context, backgroundHandler);
 	}
 
 	/**
@@ -482,11 +496,16 @@ public abstract class WebFileCache<Key> {
 		private static final String PREFERENCES_NAME_FORMAT = "com.raizlabs.net.caching.WebFileCache:%s";
 		public static final long VALUE_NOT_DOWNLOADED = Long.MIN_VALUE;
 		private SharedPreferences preferences;
+		private Editor preferencesEditor;
 		private HashMap<File, Long> completedDownloads;
+		
+		private Handler backgroundHandler;
 
-		public CompletedDownloadManager(String name, Context context) {
+		public CompletedDownloadManager(String name, Context context, Handler backgroundHandler) {
+			this.backgroundHandler = backgroundHandler;
 			String prefsName = String.format(PREFERENCES_NAME_FORMAT, name);
 			preferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
+			preferencesEditor = preferences.edit();
 			completedDownloads = new HashMap<File, Long>();
 			loadFromPreferences();
 		}
@@ -509,7 +528,8 @@ public abstract class WebFileCache<Key> {
 
 		public void onDownloadInvalidated(File file) {
 			synchronized (completedDownloads) {
-				preferences.edit().putLong(file.getAbsolutePath(), VALUE_NOT_DOWNLOADED).commit();
+				preferencesEditor.putLong(file.getAbsolutePath(), VALUE_NOT_DOWNLOADED);
+				commitPreferences();
 				completedDownloads.remove(file);
 			}
 		}
@@ -518,10 +538,22 @@ public abstract class WebFileCache<Key> {
 			if (file != null && file.exists()) {
 				final long completedTime = System.currentTimeMillis();
 				synchronized (completedDownloads) {
-					preferences.edit().putLong(file.getAbsolutePath(), completedTime).commit();
+					preferencesEditor.putLong(file.getAbsolutePath(), completedTime);
+					commitPreferences();
 					completedDownloads.put(file, completedTime);
 				}
 			}
+		}
+		
+		private Runnable commitPrefsRunnable = new Runnable() {
+			@Override
+			public void run() {
+				preferencesEditor.commit();
+			}
+		};
+		
+		private void commitPreferences() {
+			backgroundHandler.post(commitPrefsRunnable);
 		}
 
 		public boolean isDownloaded(File file) {
