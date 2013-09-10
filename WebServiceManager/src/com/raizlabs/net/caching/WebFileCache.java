@@ -55,44 +55,44 @@ public abstract class WebFileCache<Key> {
 		 */
 		public Event<File> getCompletionEvent();
 	}
-	
+
 	private static class BasicWebFileCacheResult implements WebFileCacheResult {
 		boolean isCompleted;
 		WebServiceRequest<Boolean> request;
 		Event<File> completionEvent;
 		public Event<File> getCompletionEvent() { return completionEvent; }
-		
+
 		public BasicWebFileCacheResult() {
 			this.isCompleted = false;
 			this.completionEvent = new Event<File>();
 		}
-		
+
 		void setCompleted(boolean completed) {
 			synchronized (this) {
 				this.isCompleted = completed;
 			}
 		}
-		
+
 		void onCompleted(Object sender, File args) {
 			synchronized (this) {
 				setCompleted(true);
 				completionEvent.raiseEvent(sender, args);
 			}
 		}
-		
+
 		public boolean isCompleted() {
 			synchronized (this) {
 				return isCompleted;
 			}
 		}
-		
+
 		@Override
 		public void cancel() {
 			if (request != null) {
 				request.cancel();
 			}
 		}
-		
+
 		@Override
 		public boolean isStarted() {
 			if (request != null) {
@@ -102,7 +102,35 @@ public abstract class WebFileCache<Key> {
 			}
 		}
 	}
-	
+
+	/**
+	 * Class which manages a set of locks for keys of a given type.
+	 * @param <KeyType> The type of key which locks will be mapped to.
+	 */
+	private static class LockManager<KeyType> {
+		private HashMap<KeyType, Object> locks;
+
+		public LockManager() {
+			locks = new HashMap<KeyType, Object>();
+		}
+
+		public Object getLockForKey(KeyType key) {
+			Object lock = locks.get(key);
+			if (lock == null) {
+				synchronized (this) {
+					lock = locks.get(key);
+					if (lock == null) {
+						lock = new Object();
+						locks.put(key, lock);
+					}
+				}
+			}
+
+			return lock;
+		}
+	}
+
+
 	/**
 	 * Map of Events for download completion, containing all listeners.
 	 */
@@ -112,6 +140,8 @@ public abstract class WebFileCache<Key> {
 	 */
 	private HashSet<Key> currentDownloads;
 
+	private LockManager<Key> lockManager;
+
 	private CompletedDownloadManager completedDownloads;
 	private WebServiceManager webServiceManager;
 
@@ -120,7 +150,7 @@ public abstract class WebFileCache<Key> {
 	 * @return A {@link Handler} which can be used to do background work
 	 */
 	Handler getBackgroundHandler() { return backgroundHandler; }
-	
+
 	/**
 	 * Constructs a new {@link WebFileCache} with the given parameters.
 	 * @param name The name of the {@link WebFileCache}. This should be unique
@@ -133,12 +163,24 @@ public abstract class WebFileCache<Key> {
 		this.webServiceManager = webManager;
 		downloadEvents = new ConcurrentHashMap<Key, Event<File>>();
 		currentDownloads = new HashSet<Key>();
-		
+
 		HandlerThread handlerThread = new HandlerThread("WebFileCache(" + name + ") Background");
 		handlerThread.start();
 		backgroundHandler = new Handler(handlerThread.getLooper());
-		
+
 		completedDownloads = new CompletedDownloadManager(name, context, backgroundHandler);
+
+		lockManager = new LockManager<Key>();
+	}
+
+	/**
+	 * Gets the lock which should be used for the synchronization of the status
+	 * of the given key.
+	 * @param key The key to get the lock for.
+	 * @return The lock to use for the status of the key.
+	 */
+	protected Object getLockForKey(Key key) {
+		return lockManager.getLockForKey(key);
 	}
 
 	/**
@@ -154,7 +196,7 @@ public abstract class WebFileCache<Key> {
 		// Get the local file we will find or store the file at
 		final File localFile = getFileForKey(key);
 
-		synchronized (this) {
+		synchronized (getLockForKey(key)) {
 			if (isDownloaded(localFile)) {
 				if (freshOnly) {
 					if (!isFresh(request, localFile)) {
@@ -199,7 +241,7 @@ public abstract class WebFileCache<Key> {
 	public WebFileCacheResult getFile(final RequestBuilder request, final EventListener<File> completionListener, int priority) {
 		return getFile(request, completionListener, false, priority);
 	}
-	
+
 	/**
 	 * Retrieves the file for the given request with normal priority, calling the given listener when it is
 	 * retrieved. If the file is already in the cache, the listener will be called before this function
@@ -238,7 +280,7 @@ public abstract class WebFileCache<Key> {
 		
 		// Synchronize on this for thread safety
 		// Don't want to try to download the same file twice etc
-		synchronized (this) {
+		synchronized (getLockForKey(key)) {
 			// If it's being downloaded, subscribe the given completion listener to
 			// the event for the download
 			if (isDownloading(key)) {
@@ -389,11 +431,13 @@ public abstract class WebFileCache<Key> {
 	private boolean isDownloading(Key key) {
 		return currentDownloads.contains(key);
 	}
-	
+
 	private boolean isFresh(RequestBuilder request, File file) {
-		return isFresh(request, completedDownloads.getAge(file));
+		synchronized (getLockForKey(getKeyForRequest(request))) {
+			return isFresh(request, completedDownloads.getAge(file));
+		}
 	}
-	
+
 	/**
 	 * Gets whether the given request is still considered fresh data for the
 	 * given age.
@@ -403,7 +447,7 @@ public abstract class WebFileCache<Key> {
 	 * and re-requested.
 	 */
 	protected abstract boolean isFresh(RequestBuilder request, long age);
-	
+
 	/**
 	 * Call to indicate that a download has been completed. Calls all the listeners and removes
 	 * it from the current download state.
@@ -415,10 +459,10 @@ public abstract class WebFileCache<Key> {
 		// Regardless, raise the completion event
 		// Synchronize back on the WebFileCache so that we do not raise the event
 		// while someone is subscribing
-		synchronized (this) {
+		synchronized (getLockForKey(key)) {
 			currentDownloads.remove(key);
 			completedDownloads.onDownloadComplete(localFile);
-			
+
 			// Remove the event from the downloads, so no one can subscribe anymore
 			Event<File> completionEvent = downloadEvents.remove(key);
 			// Notify all listeners
@@ -435,7 +479,7 @@ public abstract class WebFileCache<Key> {
 	 * @param listener An optional listener to subscribe to the completion event.
 	 */
 	protected void indicateDownloading(Key key, EventListener<File> listener) {		
-		synchronized (this) {
+		synchronized (getLockForKey(key)) {
 			currentDownloads.add(key);
 			completedDownloads.onDownloadInvalidated(getFileForKey(key));
 
@@ -447,8 +491,8 @@ public abstract class WebFileCache<Key> {
 			}
 		}
 	}
-	
-	
+
+
 	/////////////
 	// Helpers //
 	/////////////
@@ -465,10 +509,10 @@ public abstract class WebFileCache<Key> {
 			event.addListener(listener);
 			return true;
 		}
-		
+
 		return false;
 	}
-	
+
 	/**
 	 * Gets the download completion event for the item with the given key,
 	 * creating one if it doesn't currently exist
@@ -492,13 +536,19 @@ public abstract class WebFileCache<Key> {
 	 */
 	protected abstract File getFileForKey(Key key);
 
+	/**
+	 * Class which handles a set of download states and properties. Note that
+	 * this class is not thread-safe for performance reasons. It is likely
+	 * already synchronized externally or easier/cheaper to do externally
+	 * than it is to do it inside here.
+	 */
 	private static class CompletedDownloadManager{
 		private static final String PREFERENCES_NAME_FORMAT = "com.raizlabs.net.caching.WebFileCache:%s";
 		public static final long VALUE_NOT_DOWNLOADED = Long.MIN_VALUE;
 		private SharedPreferences preferences;
 		private Editor preferencesEditor;
 		private HashMap<File, Long> completedDownloads;
-		
+
 		private Handler backgroundHandler;
 
 		public CompletedDownloadManager(String name, Context context, Handler backgroundHandler) {
@@ -511,58 +561,50 @@ public abstract class WebFileCache<Key> {
 		}
 
 		private void loadFromPreferences() {
-			synchronized (completedDownloads) {
-				final Map<String, ?> downloads = preferences.getAll();
-				for (Entry<String, ?> entry : downloads.entrySet()) {
-					final Object value = entry.getValue();
-					if (value instanceof Long) {
-						long timeCompleted = ((Long) value).longValue();
-						if (timeCompleted != VALUE_NOT_DOWNLOADED) {
-							File file = new File(entry.getKey());
-							completedDownloads.put(file, timeCompleted);
-						}
+			final Map<String, ?> downloads = preferences.getAll();
+			for (Entry<String, ?> entry : downloads.entrySet()) {
+				final Object value = entry.getValue();
+				if (value instanceof Long) {
+					long timeCompleted = ((Long) value).longValue();
+					if (timeCompleted != VALUE_NOT_DOWNLOADED) {
+						File file = new File(entry.getKey());
+						completedDownloads.put(file, timeCompleted);
 					}
 				}
 			}
 		}
 
 		public void onDownloadInvalidated(File file) {
-			synchronized (completedDownloads) {
-				preferencesEditor.putLong(file.getAbsolutePath(), VALUE_NOT_DOWNLOADED);
-				commitPreferences();
-				completedDownloads.remove(file);
-			}
+			preferencesEditor.putLong(file.getAbsolutePath(), VALUE_NOT_DOWNLOADED);
+			commitPreferences();
+			completedDownloads.remove(file);
 		}
 
 		public void onDownloadComplete(File file) {
 			if (file != null && file.exists()) {
 				final long completedTime = System.currentTimeMillis();
-				synchronized (completedDownloads) {
-					preferencesEditor.putLong(file.getAbsolutePath(), completedTime);
-					commitPreferences();
-					completedDownloads.put(file, completedTime);
-				}
+				preferencesEditor.putLong(file.getAbsolutePath(), completedTime);
+				commitPreferences();
+				completedDownloads.put(file, completedTime);
 			}
 		}
-		
+
 		private Runnable commitPrefsRunnable = new Runnable() {
 			@Override
 			public void run() {
 				preferencesEditor.commit();
 			}
 		};
-		
+
 		private void commitPreferences() {
 			backgroundHandler.post(commitPrefsRunnable);
 		}
 
 		public boolean isDownloaded(File file) {
-			synchronized (completedDownloads) {
-				Long timeCompleted = completedDownloads.get(file);
-				return (timeCompleted != null) && (timeCompleted.longValue() != VALUE_NOT_DOWNLOADED);
-			}
+			Long timeCompleted = completedDownloads.get(file);
+			return (timeCompleted != null) && (timeCompleted.longValue() != VALUE_NOT_DOWNLOADED);
 		}
-		
+
 		/**
 		 * Gets the time since the given {@link File} was downloaded.
 		 * @param file The file to get the age of.
@@ -570,13 +612,11 @@ public abstract class WebFileCache<Key> {
 		 * {@link #VALUE_NOT_DOWNLOADED} if the File was not downloaded.
 		 */
 		public long getAge(File file) {
-			synchronized (completedDownloads) {
-				Long timeCompleted = completedDownloads.get(file);
-				if (timeCompleted != null && timeCompleted.longValue() != VALUE_NOT_DOWNLOADED) {
-					return System.currentTimeMillis() - timeCompleted;
-				} else {
-					return VALUE_NOT_DOWNLOADED;
-				}
+			Long timeCompleted = completedDownloads.get(file);
+			if (timeCompleted != null && timeCompleted.longValue() != VALUE_NOT_DOWNLOADED) {
+				return System.currentTimeMillis() - timeCompleted;
+			} else {
+				return VALUE_NOT_DOWNLOADED;
 			}
 		}
 	}
