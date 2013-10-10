@@ -324,7 +324,11 @@ public class RequestBuilder {
 		return queryBuilder.toString();
 	}
 
-	private String getUrl() {
+	/**
+	 * Gets the URL that this {@link RequestBuilder} points to.
+	 * @return The URL the {@link RequestBuilder} is pointing to.
+	 */
+	protected String getUrl() {
 		String url = uri.toString();
 		// If we have params, set them on the url
 		// Unless it is a post, in which case they go in the body
