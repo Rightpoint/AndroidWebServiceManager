@@ -17,6 +17,7 @@ import org.apache.http.client.methods.HttpUriRequest;
 
 import android.os.AsyncTask;
 import android.os.Process;
+import android.util.Log;
 
 import com.raizlabs.concurrent.BasePrioritizedRunnable;
 import com.raizlabs.concurrent.Prioritized;
@@ -447,6 +448,7 @@ public class WebServiceManager {
 							result = request.translateConnection(connection);
 						} catch (Exception ex) {
 							// We may hit errors if the connection is closed etc.
+							Log.w(getClass().getName(), "Error executing request", ex);
 						}
 
 						resultInfo = new BasicResultInfo<ResultType>(result, new Date(), connection);
