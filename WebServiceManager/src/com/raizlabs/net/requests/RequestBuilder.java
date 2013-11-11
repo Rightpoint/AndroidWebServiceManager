@@ -47,12 +47,20 @@ import com.raizlabs.net.ProgressInputStreamEntity;
  *
  */
 public class RequestBuilder {
+	
+	protected static class ParamLocation {
+		private static final int AUTO = 0;
+		private static final int URL = 10;
+		private static final int BODY = 20;
+	}
+	
 	private URI uri;
 	private HttpMethod method;
 	private LinkedHashMap<String, String> params;
 	private LinkedHashMap<String, String> headers;
 	private UsernamePasswordCredentials basicAuthCredentials;
-
+	private int paramLocation = ParamLocation.AUTO;
+	
 	/**
 	 * Constructs a {@link RequestBuilder} using the given {@link HttpMethod}
 	 * and pointing to the given url.
@@ -74,8 +82,8 @@ public class RequestBuilder {
 		this.uri = uri;
 		this.params = new LinkedHashMap<String, String>();
 		this.headers = new LinkedHashMap<String, String>();
-	}	
-
+	}
+	
 
 	/**
 	 * Sets the target URL for this {@link RequestBuilder}.
@@ -258,6 +266,46 @@ public class RequestBuilder {
 		
 		return this;
 	}
+	
+	/**
+	 * Resolves where parameters should be sent and returns the value. This
+	 * will resolve automatic detection and return the final endpoint instead
+	 * of {@link ParamLocation#AUTO}
+	 * @return One of the values defined in {@link ParamLocation} where params
+	 * should be sent
+	 */
+	protected int getParamLocationResolved() {
+		if (paramLocation == ParamLocation.AUTO) {
+			if (method == HttpMethod.Post) {
+				return ParamLocation.BODY;
+			} else {
+				return ParamLocation.URL;
+			}
+		} else {
+			return paramLocation;
+		}
+	}
+	
+	/**
+	 * Causes the params set by addParam calls to be sent in the URL of this
+	 * request.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder setSendParamsInURL() {
+		paramLocation = ParamLocation.URL;
+		return this;
+	}
+	
+	/**
+	 * Causes the params set by addParam calls to be sent in the body of this
+	 * request.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder setSendParamsInBody() {
+		paramLocation = ParamLocation.BODY;
+		return this;
+	}
+	
 
 	private void putEntries(Collection<NameValuePair> entries, Map<String, String> map) {
 		for (NameValuePair entry : entries) {
@@ -330,9 +378,9 @@ public class RequestBuilder {
 	 */
 	protected String getUrl() {
 		String url = uri.toString();
-		// If we have params, set them on the url
-		// Unless it is a post, in which case they go in the body
-		if (params.size() > 0 && method != HttpMethod.Post) { 
+		
+		// If we should set params in the url and we have params to set, do so
+		if ((getParamLocationResolved() == ParamLocation.URL) && (params.size() > 0)) {
 			String queryString = "?" + getQueryString(params);
 			url = String.format("%s%s", uri, queryString);
 		}
