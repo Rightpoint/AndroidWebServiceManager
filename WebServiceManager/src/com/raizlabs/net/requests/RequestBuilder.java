@@ -415,7 +415,7 @@ public class RequestBuilder {
 
 			// If we have params and this is a post, we need to do output
 			// but they will be written later
-			if (params.size() > 0 && method == HttpMethod.Post) {
+			if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
 				connection.setDoOutput(true);
 			}
 			
@@ -449,7 +449,7 @@ public class RequestBuilder {
 	 */
 	public void onConnected(HttpURLConnection connection) {
 		// If we have params and this is a put, we need to write them here
-		if (params.size() > 0 && method == HttpMethod.Post) {
+		if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
 			// Convert the params to a query string, and write it to the body.
 			String query = getQueryString(params);
 			try {
@@ -498,7 +498,7 @@ public class RequestBuilder {
 
 		// If we have parameters and this is a post, we need to add
 		// the parameters to the body
-		if (params.size() > 0 && method == HttpMethod.Post) {
+		if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
 			try {
 				((HttpEntityEnclosingRequest)request).setEntity(new UrlEncodedFormEntity(getNameValuePairs(params)));
 			} catch (UnsupportedEncodingException e) {
