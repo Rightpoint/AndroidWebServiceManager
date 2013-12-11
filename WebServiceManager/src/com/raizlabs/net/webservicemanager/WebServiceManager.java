@@ -2,6 +2,7 @@ package com.raizlabs.net.webservicemanager;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.SocketTimeoutException;
 import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -307,7 +308,7 @@ public class WebServiceManager {
 		if (mode == null) {
 			mode = defaultRequestMode;
 		}
-		
+
 		switch(mode) {
 		case HttpClient:
 			return doRequestViaClient(request);
@@ -415,8 +416,13 @@ public class WebServiceManager {
 				outerConnection = connection;
 				// Double check the request is still not cancelled.
 				if (!request.isCancelled()) {
-					// Connect
-					connection.connect();
+					try {
+						// Connect
+						connection.connect();
+					} catch (SocketTimeoutException e) {
+						Log.e(WebServiceManager.class.getName(), "Socket timed out. Connection failed.");
+					}
+					
 					
 					boolean isCancelled = false;
 					// Lock on the status lock so that we know the status won't change
