@@ -95,6 +95,11 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	}
 	
 	@Override
+	public boolean setCookies() {
+		return true;
+	}
+	
+	@Override
 	public void addOnCancelListener(SimpleEventListener listener) {
 		synchronized(getStatusLock()) {
 			cancelListeners.add(listener);

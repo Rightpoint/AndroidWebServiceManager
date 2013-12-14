@@ -81,6 +81,14 @@ public interface WebServiceRequest<ResultType> extends HttpUriRequestable, UrlCo
 	 */
 	boolean isCancelled();
 	/**
+	 * Forces connection to disable cookies if false is returned. If setCookies
+	 * is false, the only change is in the Http request. Cookies in the connection's 
+	 * result may still be stored.
+	 * @return False if this request should prevent the connection from 
+	 * being made with cookies.
+	 */
+	boolean setCookies();
+	/**
 	 * Adds a listener which will be called if this {@link WebServiceRequest} is
 	 * cancelled. This listener is called immediately if this request has
 	 * already been cancelled.

@@ -410,7 +410,7 @@ public class WebServiceManager {
 				// Get the connection from the request. This should not actually open
 				// the connection, merely set it up.
 				final HttpURLConnection connection = request.getUrlConnection();
-				setupConnection(connection);
+				setupConnection(connection, request.setCookies());
 				connection.setConnectTimeout(getConnectionTimeout());
 				connection.setReadTimeout(getReadTimeout());
 				outerConnection = connection;
@@ -491,8 +491,9 @@ public class WebServiceManager {
 	 * Called to set up an {@link HttpURLConnection}. This is called right
 	 * before the connection is opened so any set up may be done.
 	 * @param connection The connection about to be opened
+	 * @param setCookies Optionallly disable sending cookies to the connection
 	 */
-	protected void setupConnection(HttpURLConnection connection) { }
+	protected void setupConnection(HttpURLConnection connection, boolean setCookies) { }
 	/**
 	 * Called to tear down an {@link HttpURLConnection}. This is called after
 	 * the data has been consumed and the connection is about to be closed.
