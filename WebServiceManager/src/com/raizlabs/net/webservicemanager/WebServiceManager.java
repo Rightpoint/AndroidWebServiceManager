@@ -393,6 +393,8 @@ public class WebServiceManager {
 	public <ResultType> ResultInfo<ResultType> doRequestViaURLConnection(final WebServiceRequest<ResultType> request) {
 		HttpURLConnection outerConnection = null;
 		ResultInfo<ResultType> resultInfo = null;
+		
+		boolean needsRetry = false;
 		try {
 			// If the request hasn't been cancelled yet, start the connection
 			if (!request.isCancelled()) {
@@ -462,8 +464,8 @@ public class WebServiceManager {
 				}
 			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			needsRetry = onURLConnectionException(request, e);
+			Log.w(getClass().getName(), "Error in a URLConnection. Retry: " + needsRetry, e);
 		} finally {
 			// No matter what, disconnect the connection if we have one
 			if (outerConnection != null) {
@@ -472,6 +474,10 @@ public class WebServiceManager {
 			}
 			// Release the connection
 			endConnection();
+		}
+		
+		if (needsRetry) {
+			return doRequestViaURLConnection(request);
 		}
 
 		// If we never created a result, create a nulled on
@@ -485,6 +491,16 @@ public class WebServiceManager {
 		}
 		
 		return resultInfo;
+	}
+	
+	/**
+	 * Called when an exception is caught in an {@link HttpURLConnection} request.
+	 * @param request The {@link WebServiceRequest} that caused the exception.
+	 * @param e The raised exception.
+	 * @return True to retry the request, false to fail immediately.
+	 */
+	protected <ResultType> boolean onURLConnectionException(WebServiceRequest<ResultType> request, IOException e) {
+		return false;
 	}
 	
 	/**
