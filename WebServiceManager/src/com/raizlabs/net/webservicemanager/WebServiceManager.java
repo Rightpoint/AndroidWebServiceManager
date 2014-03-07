@@ -99,6 +99,7 @@ public class WebServiceManager {
 		}
 		if (backgroundPoolExecutor != null) {
 			backgroundPoolExecutor.setMaximumPoolSize(maxConnections);
+			backgroundPoolExecutor.setCorePoolSize(maxConnections);
 		}
 	}
 
@@ -237,9 +238,9 @@ public class WebServiceManager {
 	 * @return The {@link ThreadPoolExecutor} to use to execute background requests.
 	 */
 	protected ThreadPoolExecutor createBackgroundThreadPool(int maxConnections) {
-		final BlockingQueue<Runnable> queue = new PriorityBlockingQueue<Runnable>();
+		final BlockingQueue<Runnable> queue = new PriorityBlockingQueue<Runnable>(Integer.MAX_VALUE);
 		// Keep 1 thread alive at all times, keep idle threads alive for 3 seconds
-		ThreadPoolExecutor executor = new ThreadPoolExecutor(1, maxConnections, 3, TimeUnit.SECONDS, queue);
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(maxConnections, maxConnections, 3, TimeUnit.SECONDS, queue);
 		executor.setThreadFactory(new ThreadFactory() {
 			@Override
 			public Thread newThread(final Runnable r) {
