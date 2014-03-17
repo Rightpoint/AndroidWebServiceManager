@@ -45,8 +45,9 @@ public class BasicResultInfo<ResultType> implements ResultInfo<ResultType>{
 	 * @param result The result of the request.
 	 * @param requestDate The {@link Date} the request was completed.
 	 * @param connection The {@link HttpURLConnection} resulting from the request.
+	 * @throws IOException If there was an exception with the connection.
 	 */
-	public BasicResultInfo(ResultType result, Date requestDate, HttpURLConnection connection) {
+	public BasicResultInfo(ResultType result, Date requestDate, HttpURLConnection connection) throws IOException {
 		this(result, requestDate);
 		wrap(connection);
 	}
@@ -71,14 +72,14 @@ public class BasicResultInfo<ResultType> implements ResultInfo<ResultType>{
 	}
 	
 	
-	private void wrap(HttpURLConnection conn) {
+	private void wrap(HttpURLConnection conn) throws IOException {
 		if (conn != null) {
 			try {
 				this.ResponseCode = conn.getResponseCode();
 				this.ResponseMessage = conn.getResponseMessage();
 			} catch (IOException e) {
 				Log.w(getClass().getName(), "IO Exception when wrapping URLConnection: " + e.getMessage());
-				e.printStackTrace();
+				throw e;
 			}
 		}
 	}

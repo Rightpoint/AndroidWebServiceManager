@@ -32,6 +32,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.auth.BasicScheme;
 import org.apache.http.message.BasicNameValuePair;
 
+import android.util.Log;
+
 import com.raizlabs.baseutils.IOUtils;
 import com.raizlabs.baseutils.Logger;
 import com.raizlabs.events.ProgressListener;
@@ -340,6 +342,15 @@ public class RequestBuilder {
 				}
 			}
 		} finally {
+			// Reset the input stream just in case it is used again
+			// We are closing it anyway, but resetting just to be safe.
+			try {
+				inputStream.reset();
+			} catch (IOException e) {
+				// Not a huge deal...
+				Log.i(getClass().getName(), "Failed to reset input stream after use.", e);
+			}
+			
 			IOUtils.safeClose(inputStream);
 			IOUtils.safeClose(out);
 		}
