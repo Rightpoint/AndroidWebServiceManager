@@ -39,6 +39,7 @@ import com.raizlabs.baseutils.Logger;
 import com.raizlabs.events.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.ProgressInputStreamEntity;
+import com.raizlabs.net.webservicemanager.BuildConfig;
 
 /**
  * Builder class which allows for the construction of a request. This class
@@ -248,7 +249,9 @@ public class RequestBuilder {
 			try {
 				setInputStream(new FileInputStream(file), file.length(), progressListener);
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				if (BuildConfig.DEBUG) {
+					Log.e(getClass().getName(), e.getMessage(), e);
+				}
 			}
 		}
 		
@@ -452,11 +455,13 @@ public class RequestBuilder {
 			return connection;
 
 		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if (BuildConfig.DEBUG) {
+				Log.e(getClass().getName(), e.getMessage(), e);
+			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if (BuildConfig.DEBUG) {
+				Log.e(getClass().getName(), e.getMessage(), e);
+			}
 		}
 
 		return null;
@@ -475,8 +480,9 @@ public class RequestBuilder {
 			try {
 				connection.getOutputStream().write(query.getBytes());
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				if (BuildConfig.DEBUG) {
+					Log.e(getClass().getName(), e.getMessage(), e);
+				}
 			}
 		}
 		
@@ -486,7 +492,9 @@ public class RequestBuilder {
 				OutputStream out = connection.getOutputStream();
 				writeToStream(out);
 			} catch (IOException e) {
-				e.printStackTrace();
+				if (BuildConfig.DEBUG) {
+					Log.e(getClass().getName(), e.getMessage(), e);
+				}
 			}
 		}
 	}

@@ -78,7 +78,9 @@ public class BasicResultInfo<ResultType> implements ResultInfo<ResultType>{
 				this.ResponseCode = conn.getResponseCode();
 				this.ResponseMessage = conn.getResponseMessage();
 			} catch (IOException e) {
-				Log.w(getClass().getName(), "IO Exception when wrapping URLConnection: " + e.getMessage());
+				if (BuildConfig.DEBUG) {
+					Log.w(getClass().getName(), "IO Exception when wrapping URLConnection: " + e.getMessage());
+				}
 				throw e;
 			}
 		}
