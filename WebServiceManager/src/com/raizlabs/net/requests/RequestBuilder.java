@@ -59,6 +59,7 @@ public class RequestBuilder {
 	private URI uri;
 	private HttpMethod method;
 	private LinkedHashMap<String, String> params;
+	private LinkedHashMap<String, List<String>> listParams;
 	private LinkedHashMap<String, String> headers;
 	private UsernamePasswordCredentials basicAuthCredentials;
 	private int paramLocation = ParamLocation.AUTO;
@@ -83,6 +84,7 @@ public class RequestBuilder {
 		this.method = method;
 		this.uri = uri;
 		this.params = new LinkedHashMap<String, String>();
+		this.listParams = new LinkedHashMap<String, List<String>>();
 		this.headers = new LinkedHashMap<String, String>();
 	}
 	
@@ -153,6 +155,42 @@ public class RequestBuilder {
 		return this;
 	}
 
+	/**
+	 * Adds a parameter to this request.
+	 * @param key The parameter key, without brackets.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addListParam(String key, List<String> value) {
+		listParams.put(key, value);
+		return this;
+	}
+	
+	/**
+	 * Adds a parameter to the request if the value is not null.  Note that this method
+	 * will still add an empty list of values to the request.
+	 * @param key The parameter key, without brackets.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addListParamIfNotNull(String key, List<String> value) {
+		if (value != null) {
+			addListParam(key, value);
+		}
+		return this;
+	}
+
+	/**
+	 * Adds a {@link Map} of parameter key value pairs as parameters of this 
+	 * request. Parameters are added in iteration order.
+	 * @param params The {@link Map} of parameters.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addListParams(Map<String, List<String>> listParams) {
+		putListEntries(listParams, this.listParams);
+		return this;
+	}
+	
 	/**
 	 * Adds a header to this request with the given name and value.
 	 * @param name The name of the header.
@@ -321,6 +359,12 @@ public class RequestBuilder {
 		}
 	}
 	
+	private void putListEntries(Map<String, List<String>> entries, Map<String, List<String>> map) {
+		for (Entry<String, List<String>> entry : entries.entrySet()) {
+			map.put(entry.getKey(), entry.getValue());
+		}
+	}
+	
 	private void writeToStream(OutputStream out) throws IOException {
 		byte[] buffer = new byte[1024];
 		long totalRead = 0;
@@ -357,15 +401,22 @@ public class RequestBuilder {
 	}
 	
 
-	private List<NameValuePair> getNameValuePairs(Map<String, String> map) {
+	private List<NameValuePair> getNameValuePairs(Map<String, String> map, Map<String, List<String>> listMap) {
 		List<NameValuePair> pairs = new LinkedList<NameValuePair>();
 		for (Entry<String, String> entry : map.entrySet()) {
 			pairs.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 		}
+		for (Entry<String, List<String>> entry : listMap.entrySet()) {
+			String key = String.format("%s[]", entry.getKey());
+			List<String> list = entry.getValue();
+			for (String value : list) {
+				pairs.add(new BasicNameValuePair(key, value));
+			}
+		}
 		return pairs;
 	}
 	
-	private String getQueryString(Map<String, String> map) {
+	private String getQueryString(Map<String, String> map, Map<String, List<String>> listMap) {
 		StringBuilder queryBuilder = new StringBuilder();
 		boolean first = true;
 		for (Entry<String, String> entry : map.entrySet()) {
@@ -389,6 +440,29 @@ public class RequestBuilder {
 
 		}
 
+		for (Entry<String, List<String>> entry : listMap.entrySet()) {
+			// This will throw a NullPointerException if you call URLEncoder.encode(null). 
+			// Instead caught & thrown with description above.
+			List<String> list = entry.getValue();
+			if (list == null) {
+				// Can't be more specific without jeopardizing security.
+				throw new NullPointerException("Malformed Request. RequestBuilder entry " +
+						"has null value for key "+entry.getKey()+" on URI "+this.uri+".");
+			}
+			
+			String key = entry.getKey();
+			for (String value : list) {
+				if (!first) {
+					queryBuilder.append("&");
+				}
+				queryBuilder.append(key);
+				queryBuilder.append("[]=");
+				queryBuilder.append(URLEncoder.encode(value));
+
+				first = false;
+			}
+		}
+
 		return queryBuilder.toString();
 	}
 
@@ -400,8 +474,8 @@ public class RequestBuilder {
 		String url = uri.toString();
 		
 		// If we should set params in the url and we have params to set, do so
-		if ((getParamLocationResolved() == ParamLocation.URL) && (params.size() > 0)) {
-			String queryString = "?" + getQueryString(params);
+		if ((getParamLocationResolved() == ParamLocation.URL) && ((params.size() > 0) || (listParams.size() > 0))) {
+			String queryString = "?" + getQueryString(params, listParams);
 			url = String.format("%s%s", uri, queryString);
 		}
 
@@ -435,7 +509,7 @@ public class RequestBuilder {
 
 			// If we have params and this is a post, we need to do output
 			// but they will be written later
-			if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
+			if (((params.size() > 0) || (listParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
 				connection.setDoOutput(true);
 			}
 			
@@ -469,9 +543,9 @@ public class RequestBuilder {
 	 */
 	public void onConnected(HttpURLConnection connection) {
 		// If we have params and this is a put, we need to write them here
-		if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
+		if (((params.size() > 0) || (listParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
 			// Convert the params to a query string, and write it to the body.
-			String query = getQueryString(params);
+			String query = getQueryString(params, listParams);
 			try {
 				connection.getOutputStream().write(query.getBytes());
 			} catch (IOException e) {
@@ -518,9 +592,9 @@ public class RequestBuilder {
 
 		// If we have parameters and this is a post, we need to add
 		// the parameters to the body
-		if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
+		if (((params.size() > 0) || (listParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
 			try {
-				((HttpEntityEnclosingRequest)request).setEntity(new UrlEncodedFormEntity(getNameValuePairs(params)));
+				((HttpEntityEnclosingRequest)request).setEntity(new UrlEncodedFormEntity(getNameValuePairs(params, listParams)));
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
