@@ -172,6 +172,21 @@ public class RequestBuilder {
 	}
 
 	/**
+	 * Adds a parameter to this request that will be sent only as part of
+	 * the request's body. This is added only if the value is not null. See also:
+	 * {@link #addParamToBodyForced(String, String)}.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamToBodyForcedIfNotNull(String key, String value) {
+		if (value != null) {
+			addParamToBodyForced(key, value);
+		}
+		return this;
+	}
+
+	/**
 	 * Adds a header to this request with the given name and value.
 	 * @param name The name of the header.
 	 * @param value The value for the header.
