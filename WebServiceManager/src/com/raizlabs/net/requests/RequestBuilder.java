@@ -264,7 +264,7 @@ public class RequestBuilder {
 	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
 	 */
 	public RequestBuilder setStringInput(String string, ProgressListener progressListener) {
-		setInputStream(IOUtils.getInputStream(string), string.length(), progressListener);
+		setInputStream(IOUtils.getInputStream(string), string.getBytes().length, progressListener);
 		
 		return this;
 	}
