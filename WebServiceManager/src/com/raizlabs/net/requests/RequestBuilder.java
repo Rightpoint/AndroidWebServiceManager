@@ -59,7 +59,7 @@ public class RequestBuilder {
 	private URI uri;
 	private HttpMethod method;
 	private LinkedHashMap<String, String> params;
-	private LinkedHashMap<String, List<String>> listParams;
+	private LinkedHashMap<String, List<String>> multipleValueParams;
 	private LinkedHashMap<String, String> headers;
 	private UsernamePasswordCredentials basicAuthCredentials;
 	private int paramLocation = ParamLocation.AUTO;
@@ -84,7 +84,7 @@ public class RequestBuilder {
 		this.method = method;
 		this.uri = uri;
 		this.params = new LinkedHashMap<String, String>();
-		this.listParams = new LinkedHashMap<String, List<String>>();
+		this.multipleValueParams = new LinkedHashMap<String, List<String>>();
 		this.headers = new LinkedHashMap<String, String>();
 	}
 	
@@ -156,38 +156,41 @@ public class RequestBuilder {
 	}
 
 	/**
-	 * Adds a parameter to this request.
+	 * Adds a single key, multiple value (KEY[]=1&KEY[]=2) parameter to this
+	 * request.
 	 * @param key The parameter key, without brackets.
 	 * @param value The parameter value.
 	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
 	 */
-	public RequestBuilder addListParam(String key, List<String> value) {
-		listParams.put(key, value);
+	public RequestBuilder addMultipleValueParam(String key, List<String> value) {
+		multipleValueParams.put(key, value);
 		return this;
 	}
 	
 	/**
-	 * Adds a parameter to the request if the value is not null.  Note that this method
-	 * will still add an empty list of values to the request.
+	 * Adds a single key, multiple value (KEY[]=1&KEY[]=2) parameter to the
+	 * request if the value is not null.  Note that this method will still add
+	 * an empty list of values to the request.
 	 * @param key The parameter key, without brackets.
 	 * @param value The parameter value.
 	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
 	 */
-	public RequestBuilder addListParamIfNotNull(String key, List<String> value) {
+	public RequestBuilder addMultipleValueParamIfNotNull(String key, List<String> value) {
 		if (value != null) {
-			addListParam(key, value);
+			addMultipleValueParam(key, value);
 		}
 		return this;
 	}
 
 	/**
-	 * Adds a {@link Map} of parameter key value pairs as parameters of this 
-	 * request. Parameters are added in iteration order.
+	 * Adds a {@link Map} of parameter single key, multiple value
+	 * (KEY[]=1&KEY[]=2) parameter pairs as parameters of this request.
+	 * Parameters are added in iteration order.
 	 * @param params The {@link Map} of parameters.
 	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
 	 */
-	public RequestBuilder addListParams(Map<String, List<String>> listParams) {
-		putListEntries(listParams, this.listParams);
+	public RequestBuilder addMultipleValueParams(Map<String, List<String>> listParams) {
+		putMultipleValueEntries(listParams, this.multipleValueParams);
 		return this;
 	}
 	
@@ -359,7 +362,7 @@ public class RequestBuilder {
 		}
 	}
 	
-	private void putListEntries(Map<String, List<String>> entries, Map<String, List<String>> map) {
+	private void putMultipleValueEntries(Map<String, List<String>> entries, Map<String, List<String>> map) {
 		for (Entry<String, List<String>> entry : entries.entrySet()) {
 			map.put(entry.getKey(), entry.getValue());
 		}
@@ -474,8 +477,8 @@ public class RequestBuilder {
 		String url = uri.toString();
 		
 		// If we should set params in the url and we have params to set, do so
-		if ((getParamLocationResolved() == ParamLocation.URL) && ((params.size() > 0) || (listParams.size() > 0))) {
-			String queryString = "?" + getQueryString(params, listParams);
+		if ((getParamLocationResolved() == ParamLocation.URL) && ((params.size() > 0) || (multipleValueParams.size() > 0))) {
+			String queryString = "?" + getQueryString(params, multipleValueParams);
 			url = String.format("%s%s", uri, queryString);
 		}
 
@@ -509,7 +512,7 @@ public class RequestBuilder {
 
 			// If we have params and this is a post, we need to do output
 			// but they will be written later
-			if (((params.size() > 0) || (listParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
+			if (((params.size() > 0) || (multipleValueParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
 				connection.setDoOutput(true);
 			}
 			
@@ -543,9 +546,9 @@ public class RequestBuilder {
 	 */
 	public void onConnected(HttpURLConnection connection) {
 		// If we have params and this is a put, we need to write them here
-		if (((params.size() > 0) || (listParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
+		if (((params.size() > 0) || (multipleValueParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
 			// Convert the params to a query string, and write it to the body.
-			String query = getQueryString(params, listParams);
+			String query = getQueryString(params, multipleValueParams);
 			try {
 				connection.getOutputStream().write(query.getBytes());
 			} catch (IOException e) {
@@ -592,9 +595,9 @@ public class RequestBuilder {
 
 		// If we have parameters and this is a post, we need to add
 		// the parameters to the body
-		if (((params.size() > 0) || (listParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
+		if (((params.size() > 0) || (multipleValueParams.size() > 0)) && (getParamLocationResolved() == ParamLocation.BODY)) {
 			try {
-				((HttpEntityEnclosingRequest)request).setEntity(new UrlEncodedFormEntity(getNameValuePairs(params, listParams)));
+				((HttpEntityEnclosingRequest)request).setEntity(new UrlEncodedFormEntity(getNameValuePairs(params, multipleValueParams)));
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
