@@ -98,7 +98,7 @@ public abstract class BaseResponse implements Response {
 				return false;
 			}
 		} catch (IOException e) {
-			Logger.w(getClass().getName(), "IOException in getContentToFile: " + e.getMessage());
+			Logger.w(getClass().getName(), "IOException in getContentToFile", e);
 			return false;
 		}
 		
@@ -114,7 +114,7 @@ public abstract class BaseResponse implements Response {
 			// Get an output stream to the file
 			out = new FileOutputStream(file);
 		} catch (IOException e) {
-			Logger.w(getClass().getName(), "IOException in readContentToFile: " + e.getMessage());
+			Logger.w(getClass().getName(), "IOException in readContentToFile", e);
 			IOUtils.safeClose(input);
 			return false;
 		}
@@ -139,7 +139,7 @@ public abstract class BaseResponse implements Response {
 			// If the expected size was not defined, we return true as we don't know if it failed.
 			return expectedSize == -1 || totalRead == expectedSize;
 		} catch (IOException ex) {
-			Logger.w(getClass().getName(), "IOException in readContentToFile: " + ex.getMessage());
+			Logger.w(getClass().getName(), "IOException in readContentToFile", ex);
 			return false;
 		} finally {
 			// Close both our streams
