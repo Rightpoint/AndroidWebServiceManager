@@ -5,11 +5,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 
@@ -382,6 +385,48 @@ public abstract class WebFileCache<Key> {
 		return waitForResult(requestLock);
 	}
 	
+	/**
+	 * Removes the download data for the given request if it exists and has
+	 * completed. Does nothing if the data is currently being downloaded.
+	 * @param request The request to remove the data for.
+	 * @return True if data was removed, false if no data was found.
+	 */
+	public boolean removeFile(RequestBuilder request) {
+		return removeFileForKey(getKeyForRequest(request));
+	}
+	
+	/**
+	 * Removes the downloaded data for the given key if it exists and has
+	 * completed. Does nothing if the key is currently being downloaded.
+	 * @param key The key to remove the data for.
+	 * @return True if data was removed, false if no data was not found.
+	 */
+	protected boolean removeFileForKey(Key key) {
+		File file = getFileForKey(key);
+		synchronized (getLockForKey(key)) {
+			if (isDownloaded(file)) {
+				completedDownloads.removeDownload(file);
+				file.delete();
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Removes all currently completed downloads. Will not impact any files
+	 * which are currently downloading.
+	 */
+	public void clear() {
+		// Create a "copy" of this set since it will be modified as we remove things
+		Set<File> files = new HashSet<File>(getDownloadedFiles());
+		for (File file : files) {
+			file.delete();
+			completedDownloads.removeDownload(file);
+		}
+	}
+	
 	private File waitForResult(RequestLock requestLock) {
 		while (!requestLock.completed) {
 			synchronized (requestLock) {
@@ -416,7 +461,7 @@ public abstract class WebFileCache<Key> {
 			if (file.exists()) {
 				return true;
 			} else {
-				completedDownloads.onDownloadInvalidated(file);
+				completedDownloads.removeDownload(file);
 				return false;
 			}
 		}
@@ -430,6 +475,13 @@ public abstract class WebFileCache<Key> {
 	 */
 	private boolean isDownloading(Key key) {
 		return currentDownloads.contains(key);
+	}
+	
+	/**
+	 * @return A set containing all files which are currently downloaded.
+	 */
+	protected Set<File> getDownloadedFiles() {
+		return completedDownloads.getCompletedFiles();
 	}
 
 	private boolean isFresh(RequestBuilder request, File file) {
@@ -481,7 +533,7 @@ public abstract class WebFileCache<Key> {
 	protected void indicateDownloading(Key key, EventListener<File> listener) {		
 		synchronized (getLockForKey(key)) {
 			currentDownloads.add(key);
-			completedDownloads.onDownloadInvalidated(getFileForKey(key));
+			completedDownloads.removeDownload(getFileForKey(key));
 
 			// Create a new event to put in the list
 			Event<File> event = getEventForKey(key);
@@ -574,12 +626,12 @@ public abstract class WebFileCache<Key> {
 			}
 		}
 
-		public void onDownloadInvalidated(File file) {
+		public void removeDownload(File file) {
 			preferencesEditor.putLong(file.getAbsolutePath(), VALUE_NOT_DOWNLOADED);
 			commitPreferences();
 			completedDownloads.remove(file);
 		}
-
+		
 		public void onDownloadComplete(File file) {
 			if (file != null && file.exists()) {
 				final long completedTime = System.currentTimeMillis();
@@ -588,7 +640,11 @@ public abstract class WebFileCache<Key> {
 				completedDownloads.put(file, completedTime);
 			}
 		}
-
+		
+		public Set<File> getCompletedFiles() {
+			return completedDownloads.keySet();
+		}
+		
 		private Runnable commitPrefsRunnable = new Runnable() {
 			@Override
 			public void run() {
@@ -596,8 +652,13 @@ public abstract class WebFileCache<Key> {
 			}
 		};
 
+		@SuppressLint("NewApi")
 		private void commitPreferences() {
-			backgroundHandler.post(commitPrefsRunnable);
+			if (Build.VERSION.SDK_INT >= 9) {
+				preferencesEditor.apply();
+			} else {
+				backgroundHandler.post(commitPrefsRunnable);
+			}
 		}
 
 		public boolean isDownloaded(File file) {
