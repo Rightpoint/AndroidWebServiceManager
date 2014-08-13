@@ -470,7 +470,7 @@ public class RequestBuilder {
 
 			// If we have params and this is a post, we need to do output
 			// but they will be written later
-			if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
+			if ((params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) || (forcedBodyParams.size() > 0)) {
 				connection.setDoOutput(true);
 			}
 			
