@@ -39,6 +39,7 @@ import com.raizlabs.listeners.ProgressListener;
 import com.raizlabs.logging.Logger;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.ProgressInputStreamEntity;
+import com.raizlabs.net.webservicemanager.BuildConfig;
 
 /**
  * Builder class which allows for the construction of a request. This class
@@ -59,6 +60,7 @@ public class RequestBuilder {
 	private URI uri;
 	private HttpMethod method;
 	private LinkedHashMap<String, String> params;
+	private LinkedHashMap<String, String> forcedBodyParams;
 	private LinkedHashMap<String, String> headers;
 	private UsernamePasswordCredentials basicAuthCredentials;
 	private int paramLocation = ParamLocation.AUTO;
@@ -83,6 +85,7 @@ public class RequestBuilder {
 		this.method = method;
 		this.uri = uri;
 		this.params = new LinkedHashMap<String, String>();
+		this.forcedBodyParams = new LinkedHashMap<String, String>();
 		this.headers = new LinkedHashMap<String, String>();
 	}
 	
@@ -144,12 +147,42 @@ public class RequestBuilder {
 
 	/**
 	 * Adds a {@link Map} of parameter key value pairs as parameters of this 
-	 * request. Parameters are added in iteration order.
+	 * request. Parameters are added in iteration order. Params added through this
+	 * method will adhere to settings {@link #setSendParamsInBody()} or
+	 * {@link #setSendParamsInURL()}. If you would like to force params to be
+	 * sent in the body, use {@link #addParamToBodyForced(String, String)}.
 	 * @param params The {@link Map} of parameters.
 	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
 	 */
 	public RequestBuilder addParams(Map<String, String> params) {
 		putEntries(params, this.params);
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request that will be sent only as part of
+	 * the request's body.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamToBodyForced(String key, String value) {
+		forcedBodyParams.put(key, value);
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request that will be sent only as part of
+	 * the request's body. This is added only if the value is not null. See also:
+	 * {@link #addParamToBodyForced(String, String)}.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamToBodyForcedIfNotNull(String key, String value) {
+		if (value != null) {
+			addParamToBodyForced(key, value);
+		}
 		return this;
 	}
 
@@ -248,7 +281,9 @@ public class RequestBuilder {
 			try {
 				setInputStream(new FileInputStream(file), file.length(), progressListener);
 			} catch (FileNotFoundException e) {
-				e.printStackTrace();
+				if (BuildConfig.DEBUG) {
+					Log.e(getClass().getName(), e.getMessage(), e);
+				}
 			}
 		}
 		
@@ -440,7 +475,7 @@ public class RequestBuilder {
 
 			// If we have params and this is a post, we need to do output
 			// but they will be written later
-			if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
+			if ((params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) || (forcedBodyParams.size() > 0)) {
 				connection.setDoOutput(true);
 			}
 			
@@ -457,11 +492,13 @@ public class RequestBuilder {
 			return connection;
 
 		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if (BuildConfig.DEBUG) {
+				Log.e(getClass().getName(), e.getMessage(), e);
+			}
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			if (BuildConfig.DEBUG) {
+				Log.e(getClass().getName(), e.getMessage(), e);
+			}
 		}
 
 		return null;
@@ -474,14 +511,29 @@ public class RequestBuilder {
 	 */
 	public void onConnected(HttpURLConnection connection) {
 		// If we have params and this is a put, we need to write them here
-		if (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY)) {
+		boolean shouldAddNormalParams = (params.size() > 0 && (getParamLocationResolved() == ParamLocation.BODY));
+		boolean shouldAddForcedBodyParams = (forcedBodyParams.size() > 0);
+		LinkedHashMap<String, String> bodyParams = null;
+		
+		if (shouldAddNormalParams && shouldAddForcedBodyParams) {
+			bodyParams = new LinkedHashMap<String, String>();
+			bodyParams.putAll(params);
+			bodyParams.putAll(forcedBodyParams);
+		} else if (shouldAddNormalParams) {
+			bodyParams = params;
+		} else if (shouldAddForcedBodyParams) {
+			bodyParams = forcedBodyParams;
+		}
+		
+		if (bodyParams != null) {
 			// Convert the params to a query string, and write it to the body.
-			String query = getQueryString(params);
+			String query = getQueryString(bodyParams);
 			try {
 				connection.getOutputStream().write(query.getBytes());
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				if (BuildConfig.DEBUG) {
+					Log.e(getClass().getName(), e.getMessage(), e);
+				}
 			}
 		}
 		
@@ -491,7 +543,9 @@ public class RequestBuilder {
 				OutputStream out = connection.getOutputStream();
 				writeToStream(out);
 			} catch (IOException e) {
-				e.printStackTrace();
+				if (BuildConfig.DEBUG) {
+					Log.e(getClass().getName(), e.getMessage(), e);
+				}
 			}
 		}
 	}
