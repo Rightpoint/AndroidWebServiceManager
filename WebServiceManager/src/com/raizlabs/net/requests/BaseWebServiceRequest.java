@@ -6,8 +6,7 @@ import java.util.HashSet;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
-import com.raizlabs.events.ProgressListener;
-import com.raizlabs.events.SimpleEventListener;
+import com.raizlabs.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.responses.HttpClientResponse;
 import com.raizlabs.net.responses.HttpURLConnectionResponse;
@@ -75,16 +74,14 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	/**
 	 * Set of cancellation listeners that are subscribed.
 	 */
-	private HashSet<SimpleEventListener> cancelListeners = new HashSet<SimpleEventListener>();
+	private CancelListenerSet<ResultType> cancelListeners = new CancelListenerSet<ResultType>();
 	
 	@Override
 	public void cancel() {
 		synchronized(getStatusLock()) {
 			cancelled = true;
 			// Call any listeners that are subscribed.
-			for (SimpleEventListener listener : cancelListeners) {
-				listener.onEvent();
-			}
+			cancelListeners.onCancel(this);
 		}
 	}
 	
@@ -95,18 +92,18 @@ public abstract class BaseWebServiceRequest<ResultType> implements WebServiceReq
 	}
 	
 	@Override
-	public void addOnCancelListener(SimpleEventListener listener) {
+	public void addOnCancelListener(CancelListener<ResultType> listener) {
 		synchronized(getStatusLock()) {
 			cancelListeners.add(listener);
 			// If we're already cancelled, call it immediately.
 			if (cancelled) {
-				listener.onEvent();
+				listener.onCancel(this);
 			}
 		}
 	}
 	
 	@Override
-	public boolean removeOnCancelListener(SimpleEventListener listener) {
+	public boolean removeOnCancelListener(CancelListener<ResultType> listener) {
 		synchronized(getStatusLock()) {
 			return cancelListeners.remove(listener);
 		}

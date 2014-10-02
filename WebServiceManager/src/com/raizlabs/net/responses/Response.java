@@ -11,7 +11,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Rect;
 
-import com.raizlabs.events.ProgressListener;
+import com.raizlabs.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 
 /**

@@ -15,9 +15,9 @@ import android.graphics.BitmapFactory.Options;
 import android.graphics.Rect;
 import android.text.TextUtils;
 
-import com.raizlabs.baseutils.IOUtils;
-import com.raizlabs.baseutils.Logger;
-import com.raizlabs.events.ProgressListener;
+import com.raizlabs.io.IOUtils;
+import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.logging.Logger;
 
 /**
  * Abstract class which does some of the generic work for a response.

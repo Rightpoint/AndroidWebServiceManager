@@ -34,9 +34,9 @@ import org.apache.http.message.BasicNameValuePair;
 
 import android.util.Log;
 
-import com.raizlabs.baseutils.IOUtils;
-import com.raizlabs.baseutils.Logger;
-import com.raizlabs.events.ProgressListener;
+import com.raizlabs.io.IOUtils;
+import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.logging.Logger;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.ProgressInputStreamEntity;
 
@@ -365,6 +365,7 @@ public class RequestBuilder {
 		return pairs;
 	}
 	
+	@SuppressWarnings("deprecation")
 	private String getQueryString(Map<String, String> map) {
 		StringBuilder queryBuilder = new StringBuilder();
 		boolean first = true;
@@ -383,7 +384,11 @@ public class RequestBuilder {
 			}
 			queryBuilder.append(entry.getKey());
 			queryBuilder.append("=");
-			queryBuilder.append(URLEncoder.encode(value));
+			try {
+				queryBuilder.append(URLEncoder.encode(value, "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				queryBuilder.append(URLEncoder.encode(value));
+			}
 
 			first = false;
 

@@ -16,27 +16,20 @@ import javax.net.ssl.HttpsURLConnection;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
-import android.os.AsyncTask;
 import android.os.Process;
 import android.util.Log;
 
-import com.raizlabs.concurrent.BasePrioritizedRunnable;
 import com.raizlabs.concurrent.Prioritized;
 import com.raizlabs.concurrent.Prioritized.Priority;
-import com.raizlabs.concurrent.PrioritizedRunnable;
-import com.raizlabs.events.EventListener;
-import com.raizlabs.events.SimpleEventListener;
 import com.raizlabs.net.Constants;
 import com.raizlabs.net.HttpClientProvider;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.RequestExecutionPool;
-import com.raizlabs.net.requests.BaseWebServiceRequestAsyncTask;
 import com.raizlabs.net.requests.WebServiceRequest;
-import com.raizlabs.net.requests.WebServiceRequestAsyncTask;
+import com.raizlabs.net.requests.WebServiceRequest.CancelListener;
 import com.raizlabs.net.ssl.SimpleSSLSocketFactory;
 import com.raizlabs.net.ssl.TrustManager;
 import com.raizlabs.net.ssl.TrustManagerFactory;
-import com.raizlabs.tasks.RZAsyncTaskListener;
 
 /**
  * Class which executes requests and manages a set of maximum connections.
@@ -46,6 +39,10 @@ import com.raizlabs.tasks.RZAsyncTaskListener;
  */
 public class WebServiceManager {
 	private static final int DEFAULT_MAX_CONNECTIONS = 5;
+	
+	public interface WebRequestListener<T> {
+		public void onEvent(ResultInfo<T> result);
+	}
 	
 	private RequestExecutionPool requestQueue;
 	/**
@@ -345,9 +342,9 @@ public class WebServiceManager {
 					request.onStart();
 
 					// Listen for future cancels
-					SimpleEventListener cancelListener = new SimpleEventListener() {
+					CancelListener<ResultType> cancelListener = new CancelListener<ResultType>() {
 						@Override
-						public void onEvent() {
+						public void onCancel(WebServiceRequest<ResultType> request) {
 							// If the request is cancelled, abort the request. This may be called
 							// asynchronously
 							requestQueue.abortRequest(httpRequest);
@@ -434,9 +431,9 @@ public class WebServiceManager {
 						isCancelled = request.isCancelled();
 						if (!isCancelled) {		
 							// List for future cancels
-							SimpleEventListener cancelListener = new SimpleEventListener() {
+							CancelListener<ResultType> cancelListener = new CancelListener<ResultType>() {
 								@Override
-								public void onEvent() {
+								public void onCancel(WebServiceRequest<ResultType> request) {
 									// If cancelled, disconnect the connection. From here on, the
 									// connection may be dead.
 									connection.disconnect();
@@ -520,26 +517,26 @@ public class WebServiceManager {
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the normal priority,
-	 * calling the given {@link EventListener} when completed.
+	 * calling the given {@link WebRequestListener} when completed.
 	 * @param request The {@link WebServiceRequest} to execute.
-	 * @param listener The {@link EventListener} to call when the request completes. Optional.
+	 * @param listener The {@link WebRequestListener} to call when the request completes. Optional.
 	 * predefined values.
 	 */
-	public <T> void doRequestInBackground(WebServiceRequest<T> request, EventListener<ResultInfo<T>> listener) {
+	public <T> void doRequestInBackground(WebServiceRequest<T> request, WebRequestListener<T> listener) {
 		doRequestInBackground(request, listener, Priority.NORMAL);
 	}
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the given priority,
-	 * calling the given {@link EventListener} when completed.
+	 * calling the given {@link WebRequestListener} when completed.
 	 * @param request The {@link WebServiceRequest} to execute.
-	 * @param listener The {@link EventListener} to call when the request completes. Optional.
+	 * @param listener The {@link WebRequestListener} to call when the request completes. Optional.
 	 * @param priority The priority to execute the request with. See {@link Priority} for
 	 * predefined values.
 	 */
 	public <T> void doRequestInBackground(
 			WebServiceRequest<T> request,
-			EventListener<ResultInfo<T>> listener,
+			WebRequestListener<T> listener,
 			int priority) {
 		
 		doRequestInBackground(request, defaultRequestMode, listener, priority);
@@ -547,25 +544,25 @@ public class WebServiceManager {
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the given priority,
-	 * calling the given {@link EventListener} when completed.
+	 * calling the given {@link WebRequestListener} when completed.
 	 * @param request The {@link WebServiceRequest} to execute.
 	 * @param mode The {@link RequestMode} to use to execute the request.
-	 * @param listener The {@link EventListener} to call when the request completes. Optional.
+	 * @param listener The {@link WebRequestListener} to call when the request completes. Optional.
 	 * @param priority The priority to execute the request with. See {@link Priority} for
 	 * predefined values.
 	 */
 	public <T> void doRequestInBackground(
 			WebServiceRequest<T> request,
 			RequestMode mode,
-			EventListener<ResultInfo<T>> listener,
+			WebRequestListener<T> listener,
 			int priority) {
 		backgroundPoolExecutor.execute(createRunnable(request, mode, listener, priority));
 	}
 	
-	private <T> PrioritizedRunnable createRunnable(
+	private <T> Runnable createRunnable(
 			final WebServiceRequest<T> request,
 			final RequestMode mode,
-			final EventListener<ResultInfo<T>> listener,
+			final WebRequestListener<T> listener,
 			int priority) {
 		
 		return new DownloadRunnable(priority) {
@@ -573,52 +570,27 @@ public class WebServiceManager {
 			public void run() {
 				Process.setThreadPriority(getPriority());
 				ResultInfo<T> result = WebServiceManager.this.doRequest(request, mode);
-				if (listener != null) listener.onEvent(WebServiceManager.this, result);
+				if (listener != null) listener.onEvent(result);
 			}
 		};
 	}
 	
-	private static abstract class DownloadRunnable extends BasePrioritizedRunnable implements Comparable<DownloadRunnable> {
-		public DownloadRunnable(int priority) { super(priority); }
+	private static abstract class DownloadRunnable implements Comparable<DownloadRunnable>, Runnable, Prioritized {
+		
+		private int priority;
+		
+		public DownloadRunnable(int priority) {
+			this.priority = priority;
+		}
+		
 		@Override
 		public int compareTo(DownloadRunnable another) {
 			return Prioritized.COMPARATOR_HIGH_FIRST.compare(this, another);
 		}
-	}
-	
-	/**
-	 * Performs the given request on an {@link AsyncTask} in parallel, attaching the given
-	 * {@link RZAsyncTaskListener}.
-	 * @param request The {@link WebServiceRequest} to execute.
-	 * @param listener A {@link RZAsyncTaskListener} which will be attached to the task
-	 * and receive event calls.
-	 */
-	public <T> void doRequestOnAsyncTask(WebServiceRequest<T> request,
-			RZAsyncTaskListener<WebServiceProgress, ResultInfo<T>> listener) {
-		BaseWebServiceRequestAsyncTask<T> task = new WebServiceRequestAsyncTask<T>(request, this);
-		task.addRZAsyncTaskListener(listener);
-		task.executeInParallel();
-	}
-	
-	/**
-	 * Performs the given request on an {@link AsyncTask} in parallel, and calls the
-	 * given {@link EventListener} when the request completes or is cancelled.
-	 * @param request The {@link WebServiceRequest} to execute.
-	 * @param completionListener An {@link EventListener} which will be called with
-	 * the request as the sender, with the result as the data. This will be called when
-	 * the request completes or is cancelled.
-	 */
-	public <T> void doRequestOnAsyncTask(final WebServiceRequest<T> request,
-			final EventListener<ResultInfo<T>> completionListener) {
-		doRequestOnAsyncTask(request, new RZAsyncTaskListener<WebServiceProgress, ResultInfo<T>>() {
-			@Override
-			public void onPostExecute(ResultInfo<T> result) {
-				completionListener.onEvent(request, result);
-			}
-			
-			public void onCancelled(com.raizlabs.net.webservicemanager.ResultInfo<T> result) {
-				completionListener.onEvent(request, result);
-			}
-		});
+
+		@Override
+		public int getPriority() {
+			return priority;
+		}
 	}
 }

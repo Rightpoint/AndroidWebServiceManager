@@ -4,8 +4,9 @@ import java.net.HttpURLConnection;
 
 import org.apache.http.HttpResponse;
 
-import com.raizlabs.events.ProgressListener;
-import com.raizlabs.events.SimpleEventListener;
+import com.raizlabs.collections.MappableSet;
+import com.raizlabs.functions.Delegate;
+import com.raizlabs.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 
 /**
@@ -21,6 +22,21 @@ import com.raizlabs.net.HttpMethod;
  * @param <ResultType> The type that this will return after the request is complete.
  */
 public interface WebServiceRequest<ResultType> extends HttpUriRequestable, UrlConnectionRequestable {
+	public interface CancelListener<ResultType> {
+		public void onCancel(WebServiceRequest<ResultType> request);
+	}
+	
+	static class CancelListenerSet<ResultType> extends MappableSet<CancelListener<ResultType>> {
+		public void onCancel(final WebServiceRequest<ResultType> request) {
+			map(new Delegate<CancelListener<ResultType>>() {
+				@Override
+				public void execute(CancelListener<ResultType> listener) {
+					listener.onCancel(request);
+				}
+			});
+		}
+	}
+	
 	/**
 	 * Called when the {@link HttpURLConnection} is connected, allowing
 	 * data to be written to the output stream etc.
@@ -86,17 +102,17 @@ public interface WebServiceRequest<ResultType> extends HttpUriRequestable, UrlCo
 	 * already been cancelled.
 	 * <br><br>
 	 * @see #cancel()
-	 * @see #removeOnCancelListener(SimpleEventListener)
-	 * @param listener The {@link SimpleEventListener} to call on cancellation.
+	 * @see #removeOnCancelListener(CancelListener)
+	 * @param listener The {@link CancelListener} to call on cancellation.
 	 */
-	void addOnCancelListener(SimpleEventListener listener);
+	void addOnCancelListener(CancelListener<ResultType> listener);
 	/**
-	 * Removes the given {@link SimpleEventListener} from being notified of
+	 * Removes the given {@link Delegate} from being notified of
 	 * cancellations.
-	 * @param listener The {@link SimpleEventListener} to remove.
+	 * @param listener The {@link CancelListener} to remove.
 	 * @return True if the listener was removed, false if it was not found.
 	 */
-	boolean removeOnCancelListener(SimpleEventListener listener);
+	boolean removeOnCancelListener(CancelListener<ResultType> listener);
 	
 	/**
 	 * Adds a listener which will be called when the progress is updated.
