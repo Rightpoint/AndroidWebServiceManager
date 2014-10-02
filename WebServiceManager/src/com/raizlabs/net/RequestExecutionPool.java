@@ -9,6 +9,10 @@ import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.HttpContext;
 
+import android.util.Log;
+
+import com.raizlabs.net.webservicemanager.BuildConfig;
+
 /**
  * A class which maintains a set of executing requests.
  * @author Dylan James
@@ -81,9 +85,13 @@ public class RequestExecutionPool {
 		try {
 			return getClientProvider().getClient().execute(request, context);
 		} catch (ClientProtocolException e) {
-			e.printStackTrace();
+			if (BuildConfig.DEBUG) {
+				Log.e(getClass().getName(), e.getMessage(), e);
+			}
 		} catch (IOException e) {
-			e.printStackTrace();
+			if (BuildConfig.DEBUG) {
+				Log.e(getClass().getName(), e.getMessage(), e);
+			}
 		} finally {
 			removeRequest(request);
 		}
