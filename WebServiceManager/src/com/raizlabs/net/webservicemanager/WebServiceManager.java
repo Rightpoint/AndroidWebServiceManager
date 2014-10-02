@@ -40,8 +40,17 @@ import com.raizlabs.net.ssl.TrustManagerFactory;
 public class WebServiceManager {
 	private static final int DEFAULT_MAX_CONNECTIONS = 5;
 	
-	public interface WebRequestListener<T> {
-		public void onEvent(ResultInfo<T> result);
+	/**
+	 * Listener interface for a background web request.
+	 * @param <T> The type of the result.
+	 */
+	public interface WebServiceRequestListener<T> {
+		/**
+		 * Called when the web request completes.
+		 * @param manager The manager which executed the request.
+		 * @param result The result of the request.
+		 */
+		public void onRequestComplete(WebServiceManager manager, ResultInfo<T> result);
 	}
 	
 	private RequestExecutionPool requestQueue;
@@ -517,26 +526,26 @@ public class WebServiceManager {
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the normal priority,
-	 * calling the given {@link WebRequestListener} when completed.
+	 * calling the given {@link WebServiceRequestListener} when completed.
 	 * @param request The {@link WebServiceRequest} to execute.
-	 * @param listener The {@link WebRequestListener} to call when the request completes. Optional.
+	 * @param listener The {@link WebServiceRequestListener} to call when the request completes. Optional.
 	 * predefined values.
 	 */
-	public <T> void doRequestInBackground(WebServiceRequest<T> request, WebRequestListener<T> listener) {
+	public <T> void doRequestInBackground(WebServiceRequest<T> request, WebServiceRequestListener<T> listener) {
 		doRequestInBackground(request, listener, Priority.NORMAL);
 	}
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the given priority,
-	 * calling the given {@link WebRequestListener} when completed.
+	 * calling the given {@link WebServiceRequestListener} when completed.
 	 * @param request The {@link WebServiceRequest} to execute.
-	 * @param listener The {@link WebRequestListener} to call when the request completes. Optional.
+	 * @param listener The {@link WebServiceRequestListener} to call when the request completes. Optional.
 	 * @param priority The priority to execute the request with. See {@link Priority} for
 	 * predefined values.
 	 */
 	public <T> void doRequestInBackground(
 			WebServiceRequest<T> request,
-			WebRequestListener<T> listener,
+			WebServiceRequestListener<T> listener,
 			int priority) {
 		
 		doRequestInBackground(request, defaultRequestMode, listener, priority);
@@ -544,17 +553,17 @@ public class WebServiceManager {
 	
 	/**
 	 * Performs the given {@link WebServiceRequest} on a background thread, with the given priority,
-	 * calling the given {@link WebRequestListener} when completed.
+	 * calling the given {@link WebServiceRequestListener} when completed.
 	 * @param request The {@link WebServiceRequest} to execute.
 	 * @param mode The {@link RequestMode} to use to execute the request.
-	 * @param listener The {@link WebRequestListener} to call when the request completes. Optional.
+	 * @param listener The {@link WebServiceRequestListener} to call when the request completes. Optional.
 	 * @param priority The priority to execute the request with. See {@link Priority} for
 	 * predefined values.
 	 */
 	public <T> void doRequestInBackground(
 			WebServiceRequest<T> request,
 			RequestMode mode,
-			WebRequestListener<T> listener,
+			WebServiceRequestListener<T> listener,
 			int priority) {
 		backgroundPoolExecutor.execute(createRunnable(request, mode, listener, priority));
 	}
@@ -562,7 +571,7 @@ public class WebServiceManager {
 	private <T> Runnable createRunnable(
 			final WebServiceRequest<T> request,
 			final RequestMode mode,
-			final WebRequestListener<T> listener,
+			final WebServiceRequestListener<T> listener,
 			int priority) {
 		
 		return new DownloadRunnable(priority) {
@@ -570,7 +579,7 @@ public class WebServiceManager {
 			public void run() {
 				Process.setThreadPriority(getPriority());
 				ResultInfo<T> result = WebServiceManager.this.doRequest(request, mode);
-				if (listener != null) listener.onEvent(result);
+				if (listener != null) listener.onRequestComplete(WebServiceManager.this, result);
 			}
 		};
 	}

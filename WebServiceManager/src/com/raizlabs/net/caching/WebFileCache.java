@@ -24,7 +24,7 @@ import com.raizlabs.net.requests.RequestBuilder;
 import com.raizlabs.net.requests.WebServiceRequest;
 import com.raizlabs.net.webservicemanager.ResultInfo;
 import com.raizlabs.net.webservicemanager.WebServiceManager;
-import com.raizlabs.net.webservicemanager.WebServiceManager.WebRequestListener;
+import com.raizlabs.net.webservicemanager.WebServiceManager.WebServiceRequestListener;
 
 /**
  * A class which caches the results of {@link WebServiceRequest}s into local {@link File}s.
@@ -381,9 +381,9 @@ public abstract class WebFileCache<Key> {
 			// Indicate that we are now downloading the file
 			indicateDownloading(key, cacheListener);
 			// Set up an event listener to handle the response from the WebServiceManager
-			WebRequestListener<Boolean> listener = new WebRequestListener<Boolean>() {
+			WebServiceRequestListener<Boolean> listener = new WebServiceRequestListener<Boolean>() {
 				@Override
-				public void onEvent(ResultInfo<Boolean> result) {
+				public void onRequestComplete(WebServiceManager manager, ResultInfo<Boolean> result) {
 					// If the request fails, delete the file and raise completion with no file
 					if (result == null || result.getResult() == null || !result.getResult()) {
 						localFile.delete();
