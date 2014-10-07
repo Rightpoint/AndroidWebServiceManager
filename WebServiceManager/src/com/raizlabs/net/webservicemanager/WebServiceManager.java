@@ -40,19 +40,6 @@ import com.raizlabs.net.ssl.TrustManagerFactory;
 public class WebServiceManager {
 	private static final int DEFAULT_MAX_CONNECTIONS = 5;
 	
-	/**
-	 * Listener interface for a background web request.
-	 * @param <T> The type of the result.
-	 */
-	public interface WebServiceRequestListener<T> {
-		/**
-		 * Called when the web request completes.
-		 * @param manager The manager which executed the request.
-		 * @param result The result of the request.
-		 */
-		public void onRequestComplete(WebServiceManager manager, ResultInfo<T> result);
-	}
-	
 	private RequestExecutionPool requestQueue;
 	/**
 	 * @return The {@link RequestExecutionPool} which is used for executing

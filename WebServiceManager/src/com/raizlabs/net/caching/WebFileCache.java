@@ -24,7 +24,7 @@ import com.raizlabs.net.requests.RequestBuilder;
 import com.raizlabs.net.requests.WebServiceRequest;
 import com.raizlabs.net.webservicemanager.ResultInfo;
 import com.raizlabs.net.webservicemanager.WebServiceManager;
-import com.raizlabs.net.webservicemanager.WebServiceManager.WebServiceRequestListener;
+import com.raizlabs.net.webservicemanager.WebServiceRequestListener;
 
 /**
  * A class which caches the results of {@link WebServiceRequest}s into local {@link File}s.
