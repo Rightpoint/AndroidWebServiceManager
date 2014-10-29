@@ -163,7 +163,9 @@ public abstract class WebFileCache<Key> {
 
 		@Override
 		public void addCacheListener(CacheListener listener) {
-			this.listeners.add(listener);
+			if (listener != null) {
+				this.listeners.add(listener);
+			}
 		}
 
 		@Override
