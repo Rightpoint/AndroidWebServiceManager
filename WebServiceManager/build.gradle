@@ -1,7 +1,8 @@
 apply plugin: 'com.android.library'
+apply plugin: 'com.raizlabs.libraryplugin'
 
 dependencies {
-    compile 'com.raizlabs.android:BaseUtils:1.0.0'
+    dependency 'BaseUtils', 'com.raizlabs.android:BaseUtils:1.0.0'
 }
 
 android {

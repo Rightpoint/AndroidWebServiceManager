@@ -1,9 +1,13 @@
 buildscript {
     repositories {
         mavenCentral()
+        maven {
+            url uri('plugins')
+        }
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.0.0'
+        classpath 'com.raizlabs.android-modules:libraryplugin:1.0.12'
     }
 }
 
