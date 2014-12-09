@@ -1,0 +1,18 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:1.0.0'
+    }
+}
+
+allprojects {
+    group = GROUP
+    version = VERSION
+
+    repositories {
+        mavenCentral()
+        maven { url "https://raw.github.com/Raizlabs/maven-releases/master/releases" }
+    }
+}

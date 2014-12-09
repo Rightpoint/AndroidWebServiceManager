@@ -411,7 +411,7 @@ public class RequestBuilder {
 			if (value == null) {
 				// Can't be more specific without jeopardizing security.
 				throw new NullPointerException("Malformed Request. RequestBuilder entry " +
-						"has null value for key "+entry.getKey()+" on URI "+this.uri+".");
+						"has null value for key "+entry.getKey()+" on URI "+this.uri+ "");
 			}
 			
 			if (!first) {
