@@ -1,8 +1,9 @@
 apply plugin: 'com.android.library'
 apply plugin: 'com.raizlabs.griddle'
 
-apply from: '../maven_push.gradle'
-apply from: '../android-artifacts.gradle'
+
+apply from: 'https://raw.githubusercontent.com/Raizlabs/maven-releases/master/android_artifacts.gradle'
+apply from: 'https://raw.githubusercontent.com/Raizlabs/maven-releases/master/maven_push.gradle'
 
 android {
     compileSdkVersion 21
