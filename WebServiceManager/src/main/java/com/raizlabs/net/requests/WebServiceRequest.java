@@ -6,7 +6,7 @@ import org.apache.http.HttpResponse;
 
 import com.raizlabs.collections.MappableSet;
 import com.raizlabs.functions.Delegate;
-import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.android.coreutils.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 
 /**

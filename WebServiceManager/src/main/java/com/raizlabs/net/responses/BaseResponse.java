@@ -16,7 +16,7 @@ import android.graphics.Rect;
 import android.text.TextUtils;
 
 import com.raizlabs.io.IOUtils;
-import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.android.coreutils.listeners.ProgressListener;
 import com.raizlabs.logging.Logger;
 
 /**

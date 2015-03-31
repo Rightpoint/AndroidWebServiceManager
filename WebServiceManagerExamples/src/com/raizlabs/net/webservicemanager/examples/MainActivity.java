@@ -14,7 +14,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.widget.ImageView;
 
-import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.android.coreutils.listeners.ProgressListener;
 import com.raizlabs.net.requests.DownloadFileRequest;
 import com.raizlabs.net.requests.JSONRequest;
 import com.raizlabs.net.webservicemanager.WebServiceManager;

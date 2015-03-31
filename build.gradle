@@ -1,13 +1,12 @@
 buildscript {
     repositories {
         mavenCentral()
-        maven {
-            url uri('plugins')
-        }
+        maven { url "https://raw.github.com/Raizlabs/maven-releases/master/releases" }
+
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.0.0'
-        classpath 'com.raizlabs.android-modules:libraryplugin:1.0.12'
+        classpath 'com.android.tools.build:gradle:1.1.0'
+        classpath 'com.raizlabs:Griddle:1.0.3'
     }
 }
 

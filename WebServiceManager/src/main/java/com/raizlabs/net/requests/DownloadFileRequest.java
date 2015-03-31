@@ -2,7 +2,7 @@ package com.raizlabs.net.requests;
 
 import java.io.File;
 
-import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.android.coreutils.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.responses.Response;
 

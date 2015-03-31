@@ -1,14 +1,15 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.raizlabs.libraryplugin'
-
-dependencies {
-    dependency 'BaseUtils', 'com.raizlabs.android:BaseUtils:1.0.0'
-}
-
-android {
-    compileSdkVersion 21
-    buildToolsVersion "21.1.1"
-}
+apply plugin: 'com.raizlabs.griddle'
 
 apply from: '../maven_push.gradle'
 apply from: '../android-artifacts.gradle'
+
+android {
+    compileSdkVersion 21
+    buildToolsVersion "21.1.2"
+}
+
+dependencies {
+    mod 'com.raizlabs.android:{CoreUtils}:1.0.0'
+}
+

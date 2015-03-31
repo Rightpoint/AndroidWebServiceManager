@@ -6,7 +6,7 @@ import java.io.OutputStream;
 
 import org.apache.http.entity.InputStreamEntity;
 
-import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.android.coreutils.listeners.ProgressListener;
 
 /**
  * An {@link InputStreamEntity} which updates a given {@link ProgressListener}

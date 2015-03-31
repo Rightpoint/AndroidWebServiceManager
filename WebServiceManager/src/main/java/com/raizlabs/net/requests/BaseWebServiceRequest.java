@@ -6,7 +6,7 @@ import java.util.HashSet;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpUriRequest;
 
-import com.raizlabs.listeners.ProgressListener;
+import com.raizlabs.android.coreutils.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.responses.HttpClientResponse;
 import com.raizlabs.net.responses.HttpURLConnectionResponse;
