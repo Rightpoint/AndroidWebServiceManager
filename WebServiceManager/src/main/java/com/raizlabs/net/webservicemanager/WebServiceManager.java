@@ -19,8 +19,8 @@ import org.apache.http.client.methods.HttpUriRequest;
 import android.os.Process;
 import android.util.Log;
 
-import com.raizlabs.concurrent.Prioritized;
-import com.raizlabs.concurrent.Prioritized.Priority;
+import com.raizlabs.android.coreutils.concurrent.Prioritized;
+import com.raizlabs.android.coreutils.concurrent.Prioritized.Priority;
 import com.raizlabs.net.Constants;
 import com.raizlabs.net.HttpClientProvider;
 import com.raizlabs.net.HttpMethod;

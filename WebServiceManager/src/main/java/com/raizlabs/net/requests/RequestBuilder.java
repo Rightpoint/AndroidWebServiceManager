@@ -34,9 +34,9 @@ import org.apache.http.message.BasicNameValuePair;
 
 import android.util.Log;
 
-import com.raizlabs.io.IOUtils;
+import com.raizlabs.android.coreutils.io.IOUtils;
 import com.raizlabs.android.coreutils.listeners.ProgressListener;
-import com.raizlabs.logging.Logger;
+import com.raizlabs.android.coreutils.logging.Logger;
 import com.raizlabs.net.HttpMethod;
 import com.raizlabs.net.ProgressInputStreamEntity;
 import com.raizlabs.net.webservicemanager.BuildConfig;

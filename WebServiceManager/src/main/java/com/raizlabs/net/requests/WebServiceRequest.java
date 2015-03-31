@@ -4,8 +4,8 @@ import java.net.HttpURLConnection;
 
 import org.apache.http.HttpResponse;
 
-import com.raizlabs.collections.MappableSet;
-import com.raizlabs.functions.Delegate;
+import com.raizlabs.android.coreutils.collections.MappableSet;
+import com.raizlabs.android.coreutils.functions.Delegate;
 import com.raizlabs.android.coreutils.listeners.ProgressListener;
 import com.raizlabs.net.HttpMethod;
 

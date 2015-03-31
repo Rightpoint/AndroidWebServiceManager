@@ -1,1 +1,1 @@
-include ':WebServiceManager'
+include ':WebServiceManager', ':sample'

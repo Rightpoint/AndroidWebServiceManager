@@ -16,10 +16,10 @@ import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 
-import com.raizlabs.collections.MappableSet;
-import com.raizlabs.concurrent.ConcurrencyUtils;
-import com.raizlabs.concurrent.Prioritized.Priority;
-import com.raizlabs.functions.Delegate;
+import com.raizlabs.android.coreutils.collections.MappableSet;
+import com.raizlabs.android.coreutils.concurrent.ConcurrencyUtils;
+import com.raizlabs.android.coreutils.concurrent.Prioritized.Priority;
+import com.raizlabs.android.coreutils.functions.Delegate;
 import com.raizlabs.net.requests.RequestBuilder;
 import com.raizlabs.net.requests.WebServiceRequest;
 import com.raizlabs.net.webservicemanager.ResultInfo;
