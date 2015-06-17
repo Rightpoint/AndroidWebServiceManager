@@ -1,0 +1,2 @@
+include 'WebServiceManager', 'BaseUtils'
+project(':BaseUtils').projectDir = new File('../BaseUtils/BaseUtils')
