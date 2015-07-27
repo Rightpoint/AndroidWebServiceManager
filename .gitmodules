@@ -1,0 +1,3 @@
+[submodule "CoreUtils"]
+	path = CoreUtils
+	url = https://dylanrjames@github.com/Raizlabs/CoreUtils.git
