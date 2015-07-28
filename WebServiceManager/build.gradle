@@ -18,8 +18,14 @@ android {
     }
 }
 
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:appcompat-v7:22.2.0'
-    compile project(':CoreUtils')
+    compile(name:'CoreUtils-1.1.0', ext:'aar')
 }
