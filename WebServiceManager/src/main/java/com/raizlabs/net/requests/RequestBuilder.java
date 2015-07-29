@@ -119,7 +119,40 @@ public class RequestBuilder {
 		params.put(key, value);
 		return this;
 	}
-	
+
+	/**
+	 * Adds a parameter to this request.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParam(String key, int value) {
+		params.put(key, Integer.toString(value));
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParam(String key, long value) {
+		params.put(key, Long.toString(value));
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParam(String key, boolean value) {
+		params.put(key, Boolean.toString(value));
+		return this;
+	}
+
 	/**
 	 * Adds a parameter to the request if the value is not null.  Note that this method
 	 * will still add an empty string value to the request.
@@ -168,6 +201,42 @@ public class RequestBuilder {
 	 */
 	public RequestBuilder addParamToBodyForced(String key, String value) {
 		forcedBodyParams.put(key, value);
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request that will be sent only as part of
+	 * the request's body.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamToBodyForced(String key, int value) {
+		forcedBodyParams.put(key, Integer.toString(value));
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request that will be sent only as part of
+	 * the request's body.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamToBodyForced(String key, long value) {
+		forcedBodyParams.put(key, Long.toString(value));
+		return this;
+	}
+
+	/**
+	 * Adds a parameter to this request that will be sent only as part of
+	 * the request's body.
+	 * @param key The parameter key.
+	 * @param value The parameter value.
+	 * @return This {@link RequestBuilder} object to allow for chaining of calls.
+	 */
+	public RequestBuilder addParamToBodyForced(String key, boolean value) {
+		forcedBodyParams.put(key, Boolean.toString(value));
 		return this;
 	}
 
