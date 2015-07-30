@@ -1,1 +1,1 @@
-include ':app', ':WebServiceManager', ':CoreUtils', 'Sample'
+include ':app', ':WebServiceManager'
