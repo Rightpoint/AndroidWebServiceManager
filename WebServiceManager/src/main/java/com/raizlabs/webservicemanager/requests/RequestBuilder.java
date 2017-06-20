@@ -57,13 +57,13 @@ public class RequestBuilder {
 		private static final int BODY = 20;
 	}
 	
-	private URI uri;
-	private HttpMethod method;
-	private LinkedHashMap<String, String> params;
-	private LinkedHashMap<String, String> forcedBodyParams;
-	private LinkedHashMap<String, String> headers;
-	private UsernamePasswordCredentials basicAuthCredentials;
-	private int paramLocation = ParamLocation.AUTO;
+	protected URI uri;
+	protected HttpMethod method;
+	protected LinkedHashMap<String, String> params;
+	protected LinkedHashMap<String, String> forcedBodyParams;
+	protected LinkedHashMap<String, String> headers;
+	protected UsernamePasswordCredentials basicAuthCredentials;
+	protected int paramLocation = ParamLocation.AUTO;
 	
 	/**
 	 * Constructs a {@link RequestBuilder} using the given {@link HttpMethod}
@@ -298,12 +298,12 @@ public class RequestBuilder {
 		basicAuthCredentials = new UsernamePasswordCredentials(user, pass);
 		return this;
 	}
-	
-	
-	private InputStream inputStream;
-	private long inputStreamLength;
-	private ProgressListener inputStreamProgressListener;
-	private int inputStreamProgressUpdateInterval = 128;
+
+
+	protected InputStream inputStream;
+	protected long inputStreamLength;
+	protected ProgressListener inputStreamProgressListener;
+	protected int inputStreamProgressUpdateInterval = 128;
 	/**
 	 * Sets the interval for which input stream progress updates will be sent.
 	 * Setting this low will result in more frequent updates which will slightly
