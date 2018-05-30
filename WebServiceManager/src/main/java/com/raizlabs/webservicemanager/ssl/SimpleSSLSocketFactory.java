@@ -29,7 +29,7 @@ import javax.net.ssl.SSLSocket;
 public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFactory {
 	private static SSLContext createSSLContext(TrustManager trustManager) {
 		try {
-			SSLContext context = SSLContext.getInstance("TLS");
+			SSLContext context = SSLContext.getInstance("TLSv1.2");
 			context.init(null, new TrustManager[] { trustManager }, new SecureRandom());
 			return context;
 		} catch (NoSuchAlgorithmException e) {
