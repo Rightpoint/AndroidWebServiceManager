@@ -41,7 +41,7 @@ bintray {
     pkg {
         repo = REPO
         name = ARTIFACT_NAME
-        userOrg = 'raizlabs'
+        userOrg = USER_ORG
         publish = true
         description = DESCRIPTION
         publicDownloadNumbers = true
