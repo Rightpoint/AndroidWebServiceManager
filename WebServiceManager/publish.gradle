@@ -66,11 +66,11 @@ artifacts {
 }
 
 Properties properties = new Properties()
-properties.load(project.rootProject.file('bintray.properties').newDataInputStream())
+properties.load(project.rootProject.file('local.properties').newDataInputStream())
 
 bintray {
-    user = properties.getProperty('bintrayUser')
-    key = properties.getProperty('bintrayApiKey')
+    user = properties.hasProperty('bintrayUser') ? properties.getProperty('bintrayUser') : System.getenv('BINTRAY_USER')
+    key = properties.hasProperty('bintrayApiKey') ? properties.getProperty('bintrayApiKey') : System.getenv('BINTRAY_API_KEY')
     publications = ['Production']
     configurations = ['archives']
     override = true
