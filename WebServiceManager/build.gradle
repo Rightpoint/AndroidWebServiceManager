@@ -1,6 +1,4 @@
 apply plugin: 'com.android.library'
-apply plugin: 'com.jfrog.bintray'
-apply plugin: 'com.github.dcendents.android-maven'
 
 android {
     compileSdkVersion 27
@@ -10,7 +8,7 @@ android {
         minSdkVersion 8
         targetSdkVersion 27
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.3"
     }
     buildTypes {
         release {
@@ -27,64 +25,4 @@ dependencies {
     implementation 'com.raizlabs:CoreUtils:1.1.7'
 }
 
-//Generate POM files needed to publish the artifacts to JCenter public Repo
-install {
-    repositories.mavenInstaller.pom.project {
-        packaging 'aar'
-        groupId GROUP_NAME
-        artifactId ARTIFACT_NAME
-
-        // Set your license
-        licenses {
-            license {
-                name 'The Apache Software License, Version 2.0'
-                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-            }
-        }
-
-        scm {
-            connection GIT_URL
-            developerConnection GIT_URL
-            url SITE_URL
-        }
-    }
-}
-
-task androidJavadocs(type: Javadoc) {
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-}
-
-task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-    classifier = 'javadoc'
-    from androidJavadocs.destinationDir
-}
-
-task androidSourcesJar(type: Jar) {
-    classifier = 'sources'
-    from android.sourceSets.main.java.srcDirs
-}
-
-artifacts {
-    archives androidSourcesJar
-    archives androidJavadocsJar
-}
-
-//Bintray Upload
-Properties properties = new Properties()
-properties.load(project.rootProject.file('local.properties').newDataInputStream())
-
-bintray {
-    user = properties.getProperty("bintray_user")
-    key = properties.getProperty("bintray_key")
-
-    configurations = ['archives']
-
-    pkg {
-        repo = 'Libraries'
-        name = ARTIFACT_NAME
-        userOrg = 'raizlabs'
-        publish = true
-        version.name = VERSION_NAME
-    }
-}
+apply from: 'publish.gradle'
