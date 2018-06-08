@@ -1,6 +1,7 @@
 package com.raizlabs.webservicemanager.webservicemanager;
 
 import android.os.Process;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.raizlabs.coreutils.concurrent.Prioritized;
@@ -12,6 +13,7 @@ import com.raizlabs.webservicemanager.RequestExecutionPool;
 import com.raizlabs.webservicemanager.requests.WebServiceRequest;
 import com.raizlabs.webservicemanager.requests.WebServiceRequest.CancelListener;
 import com.raizlabs.webservicemanager.ssl.SimpleSSLSocketFactory;
+import com.raizlabs.webservicemanager.ssl.TLS;
 import com.raizlabs.webservicemanager.ssl.TrustManager;
 import com.raizlabs.webservicemanager.ssl.TrustManagerFactory;
 
@@ -256,22 +258,32 @@ public class WebServiceManager {
 	private void endConnection() {
 		connectionSemaphore.release();
 	}
-	
+
 	/**
-	 * Sets the {@link TrustManager} to use to verify SSL connections.
+	 * Sets the {@link TrustManager} to use to verify SSL connections. It'll use by default TLSv1.2
 	 * @see TrustManagerFactory
 	 * @param manager The manager to use to verify SSL connections.
 	 */
 	public void setTrustManager(TrustManager manager) {
+		setTrustManager(manager, TLS.VERSION_1_2);
+	}
+
+	/**
+	 * Sets the {@link TrustManager} to use to verify SSL connections.
+	 * @see TrustManagerFactory
+	 * @param manager The manager to use to verify SSL connections.
+	 * @param tls The TLS version to use
+	 */
+	public void setTrustManager(TrustManager manager, @NonNull TLS tls) {
 		// Default to the default trust manager if nothing else was given
 		if (manager == null) {
 			manager = TrustManagerFactory.getDefaultTrustManager(null);
 		}
 		// Set the SSL Socket Factory to use this manager
 		if (sslSocketFactory == null) {
-			sslSocketFactory = new SimpleSSLSocketFactory(manager);
+			sslSocketFactory = new SimpleSSLSocketFactory(manager, tls);
 		} else {
-			sslSocketFactory.setTrustManager(manager);
+			sslSocketFactory.setTrustManager(manager, tls);
 		}
 		// Bind the socket factory
 		getRequestExectionQueue().getClientProvider().setHttpsSocketFactory(sslSocketFactory);

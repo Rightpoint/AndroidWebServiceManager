@@ -1,5 +1,7 @@
 package com.raizlabs.webservicemanager.ssl;
 
+import android.support.annotation.NonNull;
+
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.conn.scheme.LayeredSocketFactory;
 import org.apache.http.conn.scheme.SocketFactory;
@@ -27,9 +29,10 @@ import javax.net.ssl.SSLSocket;
  *
  */
 public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFactory {
-	private static SSLContext createSSLContext(TrustManager trustManager) {
+
+	private static SSLContext createSSLContext(@NonNull TrustManager trustManager, @NonNull TLS tls) {
 		try {
-			SSLContext context = SSLContext.getInstance("TLSv1.2");
+			SSLContext context = SSLContext.getInstance(tls.getVersion());
 			context.init(null, new TrustManager[] { trustManager }, new SecureRandom());
 			return context;
 		} catch (NoSuchAlgorithmException e) {
@@ -38,6 +41,7 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 	}
 	
 	private TrustManager trustManager;
+	private TLS tls;
 	/**
 	 * @return The {@link TrustManager} used to verify SSL Sockets.
 	 */
@@ -46,8 +50,9 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 	 * Sets the {@link TrustManager} to use to verify SSL Sockets.
 	 * @param manager The trust manager to use.
 	 */
-	public void setTrustManager(TrustManager manager) {
+	public void setTrustManager(TrustManager manager, @NonNull TLS tls) {
 		this.trustManager = manager;
+		this.tls = tls;
 		this.sslContext = null;
 	}
 	
@@ -57,7 +62,7 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 	 */
 	public SSLContext getSSLContext() {
 		if (sslContext == null) {
-			sslContext = createSSLContext(trustManager); 
+			sslContext = createSSLContext(trustManager, tls);
 		}
 		return sslContext;
 	}
@@ -67,13 +72,14 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 	 * trust manager to verify SSL Sockets.
 	 * @param trustManager The trust manager to use.
 	 */
-	public SimpleSSLSocketFactory(TrustManager trustManager) {
+	public SimpleSSLSocketFactory(TrustManager trustManager, @NonNull TLS tls) {
 		this.trustManager = trustManager;
+		this.tls = tls;
 	}
 	
 	@Override
 	public Socket createSocket(Socket socket, String host, int port,
-			boolean autoClose) throws IOException, UnknownHostException {
+			boolean autoClose) throws IOException {
 		SSLSocket sslSock = (SSLSocket) getSSLContext().getSocketFactory().createSocket(socket, host, port, autoClose);
 		if (!verifySocket(host, sslSock)) {
 			throw new IOException("Server was not trusted!");
@@ -115,12 +121,8 @@ public class SimpleSSLSocketFactory implements SocketFactory, LayeredSocketFacto
 		return sslsock;
 	}
 
-	protected boolean verifySocket(String host, SSLSocket socket) {
-		if (trustManager != null) {
-			return trustManager.verify(host, socket.getSession());
-		} else {
-			return true;
-		}
+	private boolean verifySocket(String host, SSLSocket socket) {
+		return trustManager == null || trustManager.verify(host, socket.getSession());
 	}
 	
 	@Override
