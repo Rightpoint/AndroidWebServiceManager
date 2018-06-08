@@ -3,12 +3,12 @@ apply plugin: 'com.jfrog.bintray'
 apply plugin: 'com.github.dcendents.android-maven'
 
 android {
-    compileSdkVersion 22
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 27
+    buildToolsVersion '27.0.3'
 
     defaultConfig {
         minSdkVersion 8
-        targetSdkVersion 22
+        targetSdkVersion 27
         versionCode 1
         versionName "1.0"
     }
@@ -18,12 +18,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    useLibrary 'org.apache.http.legacy'
 }
 
 dependencies {
-    //compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:22.2.0'
-    compile 'com.raizlabs:CoreUtils:1.1.0'
+    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.raizlabs:CoreUtils:1.1.7'
 }
 
 //Generate POM files needed to publish the artifacts to JCenter public Repo
